@@ -56,6 +56,160 @@ class GoogleNewsService:
         'HEALTH': '/topics/CAAqIQgKIhtDQkFTRGdvSUwyMHZNR3QwTlRFU0FtVnVLQUFQAQ?hl=en-US&gl=US&ceid=US:en',
     }
     
+    # ── Keyword maps for auto-classification ──────────────────────────────
+    # Keys are lowercase substrings; first match wins (most-specific first).
+    _CATEGORY_KEYWORDS = [
+        # ── BUDGET (must come before BUSINESS) ──────────────────────────
+        ('BUDGET', [
+            'union budget', 'budget 2026', 'budget session', 'budget speech',
+            'finance minister budget', 'tax slab', 'income tax slab',
+            'customs duty', 'railway budget', 'fiscal deficit target',
+            'budget allocation', 'budget estimate', 'interim budget',
+        ]),
+        # ── SPORTS ───────────────────────────────────────────────────────
+        ('SPORTS', [
+            'cricket', 'ipl', 'bcci', 'test match', 'odi', 't20',
+            'world cup cricket', 'football', 'fifa', 'premier league',
+            'la liga', 'bundesliga', 'champions league', 'euro 2024',
+            'tennis', 'wimbledon', 'us open tennis', 'french open',
+            'australian open', 'badminton', 'pbl', 'golf', 'formula 1',
+            'f1 race', 'olympics', 'paralympics', 'commonwealth games',
+            'asian games', 'nba', 'nfl', 'hockey', 'kabaddi', 'pro kabaddi',
+            'wrestling', 'boxing', 'mma', 'ufc', 'athletics', 'marathon',
+            'chess', 'squash', 'archery', 'shooting sport', 'weightlifting',
+            'swimmer', 'swimming', 'cyclist', 'cycling sport',
+            'virat kohli', 'rohit sharma', 'ms dhoni', 'sachin tendulkar',
+            'smriti mandhana', 'neeraj chopra', 'pv sindhu', 'saina nehwal',
+            'lionel messi', 'cristiano ronaldo', 'rafael nadal', 'novak djokovic',
+            'serena williams', 'lebron james', 'real madrid', 'barcelona fc',
+            'manchester united', 'liverpool fc', 'chelsea fc', 'arsenal fc',
+            'scored', 'century', 'hat trick', 'wicket', 'innings',
+            'tournament', 'championship', 'league table', 'standings',
+            'transfer window', 'transfer fee', 'match result', 'final score',
+        ]),
+        # ── HEALTH ───────────────────────────────────────────────────────
+        ('HEALTH', [
+            'covid', 'coronavirus', 'omicron', 'vaccine', 'vaccination',
+            'booster dose', 'herd immunity', 'pandemic', 'epidemic',
+            'outbreak', 'mpox', 'monkeypox', 'dengue', 'malaria', 'typhoid',
+            'tuberculosis', 'hiv', 'aids', 'cancer treatment', 'tumor',
+            'chemotherapy', 'radiation therapy', 'surgery', 'hospital',
+            'icu', 'ventilator', 'doctor', 'physician', 'nurse', 'aiims',
+            'health ministry', 'who health', 'cdc', 'drug approval', 'fda',
+            'clinical trial', 'medicine', 'antibiotic', 'pharmaceutical',
+            'mental health', 'depression', 'anxiety disorder', 'schizophrenia',
+            'diabetes', 'insulin', 'blood pressure', 'hypertension',
+            'heart disease', 'cardiac arrest', 'stroke', 'kidney disease',
+            'nutrition', 'obesity', 'diet plan', 'fitness', 'wellness',
+            'yoga health', 'ayurveda', 'homeopathy', 'physiotherapy',
+        ]),
+        # ── TECHNOLOGY ───────────────────────────────────────────────────
+        ('TECHNOLOGY', [
+            'artificial intelligence', 'machine learning', 'deep learning',
+            'chatgpt', 'openai', 'gemini ai', 'claude ai', 'llm',
+            'generative ai', 'neural network', 'large language model',
+            'smartphone', 'iphone', 'android phone', 'pixel phone',
+            'samsung galaxy', 'oneplus', 'realme', 'vivo phone', 'oppo',
+            'microchip', 'semiconductor', 'processor', 'gpu', 'nvidia chip',
+            'intel chip', 'amd chip', 'quantum computing', 'supercomputer',
+            'cybersecurity', 'data breach', 'ransomware', 'malware', 'hacker',
+            'cloud computing', 'aws', 'azure cloud', 'google cloud',
+            'software update', 'app launch', 'app store', 'google play',
+            'social media', 'twitter', 'facebook', 'instagram', 'youtube',
+            'tiktok', 'linkedin', 'whatsapp update', 'telegram update',
+            'electric vehicle', 'ev battery', 'autonomous vehicle',
+            'drone', 'robotics', 'automation tech', '5g network', '6g',
+            'internet of things', 'iot', 'blockchain', 'cryptocurrency',
+            'bitcoin', 'ethereum', 'nft', 'web3', 'metaverse',
+            'startup funding', 'unicorn startup', 'tech ipo', 'series a',
+            'silicon valley', 'silicon', 'tech layoff', 'microsoft layoff',
+            'google layoff', 'meta layoff', 'amazon layoff',
+        ]),
+        # ── SCIENCE ──────────────────────────────────────────────────────
+        ('SCIENCE', [
+            'isro', 'chandrayaan', 'gaganyaan', 'aditya-l1', 'mangalyaan',
+            'nasa', 'spacex', 'space launch', 'rocket launch', 'satellite',
+            'black hole', 'james webb telescope', 'hubble', 'exoplanet',
+            'solar storm', 'solar flare', 'aurora borealis', 'eclipse',
+            'climate change', 'global warming', 'carbon emission',
+            'renewable energy', 'solar energy', 'wind energy', 'nuclear energy',
+            'research paper', 'scientific study', 'peer review',
+            'archaeology', 'fossil', 'dinosaur', 'ancient civilization',
+            'dna research', 'genome', 'crispr', 'stem cell',
+            'particle physics', 'cern', 'higgs boson', 'quantum', 'physics',
+            'chemistry discovery', 'periodic table', 'biology research',
+            'biodiversity', 'endangered species', 'wildlife conservation',
+            'earthquake research', 'volcano', 'geology',
+        ]),
+        # ── ENTERTAINMENT ────────────────────────────────────────────────
+        ('ENTERTAINMENT', [
+            'bollywood', 'hollywood', 'tollywood', 'kollywood', 'mollywood',
+            'box office', 'film release', 'movie review', 'ott release',
+            'netflix', 'amazon prime video', 'disney+ hotstar', 'jiocinema',
+            'sony liv', 'zee5', 'web series', 'tv show', 'reality show',
+            'bigg boss', 'kbc', 'dance india dance',
+            'oscar', 'grammy', 'bafta', 'cannes', 'filmfare', 'iifa',
+            'national film award', 'golden globe',
+            'actor', 'actress', 'director film', 'producer film',
+            'celebrity', 'star kid', 'music album', 'song release',
+            'music video', 'concert tour', 'live performance',
+            'shahrukh khan', 'salman khan', 'aamir khan', 'amitabh bachchan',
+            'deepika padukone', 'priyanka chopra', 'alia bhatt', 'ranveer singh',
+            'taylor swift', 'beyonce', 'drake', 'ed sheeran', 'coldplay',
+            'fashion week', 'met gala', 'red carpet',
+            'book release', 'literature award', 'booker prize',
+        ]),
+        # ── BUSINESS ─────────────────────────────────────────────────────
+        ('BUSINESS', [
+            'sensex', 'nifty', 'bse', 'nse', 'stock market',
+            'share price', 'ipo listing', 'market cap', 'bull run',
+            'bear market', 'rbi rate', 'repo rate', 'monetary policy',
+            'gdp growth', 'inflation rate', 'cpi', 'wpi',
+            'trade deficit', 'current account', 'forex reserve',
+            'rupee dollar', 'currency exchange', 'fdi', 'fii',
+            'merger acquisition', 'takeover', 'demerger',
+            'quarterly result', 'earnings report', 'revenue profit',
+            'net profit', 'ebitda', 'annual report',
+            'startup valuation', 'venture capital', 'private equity',
+            'gst collection', 'direct tax', 'customs', 'excise duty',
+            'sebi', 'nclt', 'insolvency', 'bankruptcy',
+            'reliance earnings', 'tcs result', 'infosys result',
+            'real estate', 'housing market', 'property prices',
+            'oil price', 'crude oil', 'fuel price', 'petrol diesel',
+            'gold price', 'silver price', 'commodity market',
+            'agriculture market', 'msp', 'wholesale price',
+            'export import', 'trade war', 'tariff', 'wto',
+        ]),
+        # ── WORLD (last, as it matches broad geopolitical terms) ─────────
+        ('WORLD', [
+            'war', 'conflict zone', 'ceasefire', 'peace deal',
+            'diplomatic crisis', 'sanctions', 'geopolitics',
+            'united nations', 'security council', 'nato', 'eu summit',
+            'g20 summit', 'g7 summit', 'brics summit', 'sco',
+            'president election', 'prime minister', 'general election',
+            'coup', 'revolution', 'protest rally', 'civil unrest',
+            'refugee', 'migration crisis', 'border dispute',
+            'nuclear weapon', 'missile strike', 'airstrike',
+            'ukraine russia', 'russia ukraine', 'israel gaza',
+            'hamas', 'hezbollah', 'isis', 'taliban', 'al-qaeda',
+            'climate summit', 'cop30', 'paris agreement',
+            'world bank', 'imf', 'who', 'wto negotiation',
+        ]),
+    ]
+
+    @staticmethod
+    def classify_category(title: str, description: str = '') -> str:
+        """
+        Auto-detect the best category for an article using keyword matching.
+        Returns a Category string value (e.g. 'SPORTS') or '' if no match.
+        """
+        text = (title + ' ' + description).lower()
+        for category, keywords in GoogleNewsService._CATEGORY_KEYWORDS:
+            for kw in keywords:
+                if kw in text:
+                    return category
+        return ''
+
     @staticmethod
     def clean_html(html_text: str) -> str:
         """
@@ -299,18 +453,27 @@ class GoogleNewsService:
                     # Mark as Indian news when fetched from India-specific feed
                     is_indian = continent == Continent.ASIA
 
+                    # Auto-classify category from title + description keywords
+                    category = GoogleNewsService.classify_category(
+                        entry.title, clean_description
+                    )
+
                     # Use update_or_create to avoid UNIQUE constraint errors
+                    defaults = {
+                        'title': entry.title,
+                        'description': clean_description,
+                        'source': source_name,
+                        'image_url': image_url,
+                        'published_at': published_at,
+                        'continent': continent,
+                        'is_indian_news': is_indian,
+                    }
+                    if category:
+                        defaults['category'] = category
+
                     article, created = NewsArticle.objects.update_or_create(
                         url=entry.link,
-                        defaults={
-                            'title': entry.title,
-                            'description': clean_description,
-                            'source': source_name,
-                            'image_url': image_url,
-                            'published_at': published_at,
-                            'continent': continent,
-                            'is_indian_news': is_indian,
-                        }
+                        defaults=defaults,
                     )
                     
                     if created:
@@ -329,15 +492,86 @@ class GoogleNewsService:
             return 0
     
     @staticmethod
+    def fetch_news_for_category(category: str) -> int:
+        """
+        Fetch news from a category-specific Google News feed and tag articles directly.
+        Returns number of new articles added.
+        """
+        base = 'https://news.google.com/rss'
+        # Prefer India feeds when available, fall back to global
+        feed_path = GoogleNewsService.CATEGORY_FEEDS_INDIA.get(
+            category,
+            GoogleNewsService.CATEGORY_FEEDS.get(category, '')
+        )
+        if not feed_path:
+            return 0
+
+        feed_url = feed_path if feed_path.startswith('http') else base + feed_path
+        logger.info(f"Fetching category feed: {category} → {feed_url}")
+
+        try:
+            feed = feedparser.parse(feed_url)
+            articles_added = 0
+
+            for entry in feed.entries:
+                try:
+                    if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                        published_at = timezone.make_aware(
+                            datetime(*entry.published_parsed[:6])
+                        )
+                    else:
+                        published_at = timezone.now()
+
+                    if (timezone.now() - published_at).days > 3:
+                        continue
+
+                    raw_description = entry.get('summary', '')
+                    clean_description = GoogleNewsService.clean_html(raw_description)
+
+                    image_url = get_contextual_image(entry.title, clean_description)
+                    if not image_url:
+                        image_url = GoogleNewsService.extract_image_url(entry)
+                    if not image_url:
+                        image_url = GoogleNewsService.fetch_image_from_url(entry.link)
+                    if not image_url:
+                        image_url = GoogleNewsService.get_fallback_image(None, title=entry.title)
+
+                    source_name = entry.get('source', {}).get('title', 'Google News')
+
+                    article, created = NewsArticle.objects.update_or_create(
+                        url=entry.link,
+                        defaults={
+                            'title': entry.title,
+                            'description': clean_description,
+                            'source': source_name,
+                            'image_url': image_url,
+                            'published_at': published_at,
+                            'continent': Continent.ASIA,
+                            'is_indian_news': True,
+                            'category': category,  # always set from feed
+                        }
+                    )
+                    if created:
+                        articles_added += 1
+                except Exception as e:
+                    logger.error(f"Error processing category entry ({category}): {e}")
+                    continue
+
+            logger.info(f"Category {category}: {articles_added} new articles")
+            return articles_added
+        except Exception as e:
+            logger.error(f"Error fetching category feed {category}: {e}")
+            return 0
+
+    @staticmethod
     def fetch_all_news() -> dict:
         """
-        Fetch news for all continents.
-        
-        Returns:
-            Dictionary with continent as key and number of articles added as value
+        Fetch news for all continents AND all category-specific feeds.
+        Returns dictionary with keys for continents and categories.
         """
         results = {}
-        
+
+        # 1. Continent-level feeds (sets category via keyword classifier)
         for continent, _ in Continent.choices:
             try:
                 count = GoogleNewsService.fetch_news_for_continent(continent)
@@ -345,7 +579,19 @@ class GoogleNewsService:
             except Exception as e:
                 logger.error(f"Error fetching news for {continent}: {e}")
                 results[continent] = 0
-        
+
+        # 2. Category-specific feeds (sets category from feed directly)
+        from news.models import Category
+        for cat_value, _ in Category.choices:
+            if cat_value == 'WORLD':
+                continue  # covered by continent feeds
+            try:
+                count = GoogleNewsService.fetch_news_for_category(cat_value)
+                results[f'cat:{cat_value}'] = count
+            except Exception as e:
+                logger.error(f"Error fetching category feed {cat_value}: {e}")
+                results[f'cat:{cat_value}'] = 0
+
         logger.info(f"Fetch complete. Results: {results}")
         return results
     

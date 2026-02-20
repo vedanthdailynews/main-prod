@@ -18,3 +18,7 @@ python manage.py fetch_news || echo "News fetch failed (non-fatal) — will retr
 # Backfill any articles that still have no image
 echo "Backfilling missing images..."
 python manage.py fix_empty_images || echo "Image backfill failed (non-fatal)."
+
+# Classify/re-classify articles that have no category
+echo "Categorizing articles..."
+python manage.py recategorize_articles || echo "Categorization failed (non-fatal)."
