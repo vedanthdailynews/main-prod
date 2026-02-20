@@ -1,0 +1,32 @@
+# render.yaml — Render.com Blueprint (Infrastructure as Code)
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: timesofvedanta
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn vedant_news.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "timesofvedanta.com,www.timesofvedanta.com,.onrender.com"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: timesofvedanta-db
+          property: connectionString
+      - key: MAX_NEWS_AGE_DAYS
+        value: "7"
+      - key: NEWS_POLL_INTERVAL
+        value: "300"
+
+databases:
+  - name: timesofvedanta-db
+    databaseName: timesofvedanta
+    plan: free

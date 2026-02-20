@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ article.title }} - Vedant Daily News{% endblock %}
+
+{% block content %}
+<article class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Article Header -->
+        <div class="mb-4">
+            <h1 class="display-5 fw-bold">{{ article.title }}</h1>
+            
+            <div class="d-flex justify-content-between align-items-center my-3">
+                <div>
+                    <span class="badge bg-secondary">{{ article.get_continent_display }}</span>
+                    <span class="badge bg-info">{{ article.get_category_display }}</span>
+                    {% if article.is_featured %}
+                    <span class="featured-badge">FEATURED</span>
+                    {% endif %}
+                </div>
+                {% if article.sentiment %}
+                <span class="sentiment-{{ article.sentiment }} fw-bold">
+                    <i class="fas fa-circle"></i> {{ article.sentiment|upper }}
+                </span>
+                {% endif %}
+            </div>
+            
+            <div class="text-muted border-bottom pb-3">
+                <p class="mb-1">
+                    <i class="far fa-newspaper"></i> <strong>{{ article.source }}</strong>
+                    {% if article.author %} by {{ article.author }}{% endif %}
+                </p>
+                <p class="mb-1">
+                    <i class="far fa-clock"></i> Published {{ article.published_at|date:"F d, Y \a\t g:i A" }}
+                    ({{ article.published_at|timesince }} ago)
+                </p>
+                <p class="mb-0">
+                    <i class="far fa-eye"></i> {{ article.view_count }} views
+                </p>
+            </div>
+        </div>
+        
+        <!-- Article Image -->
+        {% if article.image_url %}
+        <div class="mb-4">
+            <img src="{{ article.image_url }}" alt="{{ article.title }}" class="img-fluid rounded">
+        </div>
+        {% endif %}
+        
+        <!-- AI Summary -->
+        {% if article.summary %}
+        <div class="alert alert-light border-start border-4 border-primary mb-4">
+            <h5 class="alert-heading">
+                <i class="fas fa-robot"></i> AI Summary
+            </h5>
+            <p class="mb-0">{{ article.summary }}</p>
+        </div>
+        {% endif %}
+        
+        <!-- Article Content -->
+        <div class="article-content mb-4">
+            {% if article.description %}
+            <p class="lead">{{ article.description }}</p>
+            {% endif %}
+            
+            {% if article.content %}
+            <div>{{ article.content|linebreaks }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- Tags -->
+        {% if article.tags %}
+        <div class="mb-4">
+            <h6><i class="fas fa-tags"></i> Tags:</h6>
+            {% for tag in article.tags %}
+            <span class="badge bg-light text-dark me-2">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Read Original -->
+        <div class="card bg-light mb-4">
+            <div class="card-body text-center">
+                <h5 class="card-title">Read the Original Article</h5>
+                <p class="card-text">This is a summary. Visit the source for the full story.</p>
+                <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt"></i> Go to {{ article.source }}
+                </a>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <div class="d-flex justify-content-between">
+            <a href="{% url 'news:home' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+            <a href="{% url 'news:continent' article.continent %}" class="btn btn-outline-secondary">
+                More from {{ article.get_continent_display }} <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</article>
+{% endblock %}

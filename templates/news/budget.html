@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Budget 2026 - Times of Vedant{% endblock %}
+
+{% block extra_css %}
+<style>
+    .budget-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        padding: 60px 0 40px;
+        margin-bottom: 40px;
+        border-bottom: 4px solid #d4af37;
+    }
+    
+    .budget-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .budget-subtitle {
+        text-align: center;
+        font-size: 1.3rem;
+        opacity: 0.95;
+        margin-bottom: 20px;
+    }
+    
+    .budget-date-info {
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+        text-align: center;
+    }
+    
+    .budget-date-info h4 {
+        margin: 0 0 10px 0;
+        font-size: 1.1rem;
+    }
+    
+    .budget-date-info p {
+        margin: 5px 0;
+        font-size: 0.95rem;
+    }
+    
+    .section-heading {
+        font-family: 'Playfair Display', serif;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 40px 0 25px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #d4af37;
+        color: #1a1a1a;
+    }
+    
+    .budget-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    
+    .stat-label {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    
+    .budget-article-card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 25px;
+        transition: all 0.3s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .budget-article-card:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        transform: translateY(-3px);
+    }
+    
+    .budget-article-image {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+    }
+    
+    .budget-article-content {
+        padding: 20px;
+    }
+    
+    .budget-article-category {
+        display: inline-block;
+        background: #d4af37;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+    }
+    
+    .budget-article-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 10px 0;
+        line-height: 1.4;
+    }
+    
+    .budget-article-title a {
+        color: #1a1a1a;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+    
+    .budget-article-title a:hover {
+        color: #2a5298;
+    }
+    
+    .budget-article-description {
+        color: #555;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin: 12px 0;
+    }
+    
+    .budget-article-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+        font-size: 0.85rem;
+        color: #888;
+    }
+    
+    .featured-budget-article {
+        background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%);
+        position: relative;
+        height: 450px;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 30px;
+        background-size: cover;
+        background-position: center;
+    }
+    
+    .featured-budget-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 30px;
+        color: white;
+    }
+    
+    .featured-budget-content h2 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .featured-budget-content p {
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    
+    .budget-category-tabs {
+        display: flex;
+        gap: 10px;
+        margin: 30px 0;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .budget-tab {
+        padding: 12px 25px;
+        background: #f5f5f5;
+        border: 2px solid #ddd;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        color: #555;
+        text-decoration: none;
+    }
+    
+    .budget-tab:hover, .budget-tab.active {
+        background: #2a5298;
+        border-color: #2a5298;
+        color: white;
+        transform: scale(1.05);
+    }
+    
+    .live-badge {
+        display: inline-block;
+        background: #ff4444;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-left: 10px;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .budget-info-box {
+        background: #fff8e6;
+        border-left: 4px solid #d4af37;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 8px;
+    }
+    
+    .budget-info-box h4 {
+        color: #2a5298;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+    
+    .budget-info-box ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    
+    .budget-info-box li {
+        margin: 8px 0;
+        color: #444;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Budget Header -->
+<div class="budget-header">
+    <div class="container">
+        <h1 class="budget-title">
+            Budget 2026 <span class="live-badge">🔴 LIVE</span>
+        </h1>
+        <p class="budget-subtitle">
+            Complete Coverage of Union Budget 2026-27 | India's Economic Roadmap
+        </p>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="budget-date-info">
+                    <h4>📅 Budget Presentation Date</h4>
+                    <p><strong>Saturday, February 1, 2026 at 11:00 AM</strong></p>
+                    <p>Finance Minister Nirmala Sitharaman to present her 9th consecutive budget</p>
+                    <p>📺 Watch Live on DD National, Sansad TV, and Times of Vedant</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Key Stats -->
+    <div class="budget-stats">
+        <div class="stat-card">
+            <div class="stat-label">Budget Size</div>
+            <div class="stat-value">₹51.2T</div>
+            <small>Expected Allocation</small>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">GDP Growth</div>
+            <div class="stat-value">6.8-7.2%</div>
+            <small>FY 2026-27 Projection</small>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Fiscal Deficit</div>
+            <div class="stat-value">4.4%</div>
+            <small>Target for FY26</small>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Infrastructure Push</div>
+            <div class="stat-value">₹12T</div>
+            <small>Capital Expenditure</small>
+        </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="budget-category-tabs">
+        <a href="{% url 'news:budget_home' %}" class="budget-tab active">All News</a>
+        <a href="#" class="budget-tab">Income Tax</a>
+        <a href="#" class="budget-tab">Economy</a>
+        <a href="#" class="budget-tab">Infrastructure</a>
+        <a href="#" class="budget-tab">Sectors</a>
+        <a href="#" class="budget-tab">Market Impact</a>
+        <a href="#" class="budget-tab">Expectations</a>
+    </div>
+
+    <!-- Featured Article -->
+    {% if featured_article %}
+    <div class="featured-budget-article" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%), url('{{ featured_article.image_url }}');">
+        <div class="featured-budget-content">
+            <span class="budget-article-category">FEATURED</span>
+            <h2>{{ featured_article.title }}</h2>
+            <p>{{ featured_article.description|truncatewords:30 }}</p>
+            <a href="{{ featured_article.url }}" target="_blank" class="btn btn-warning btn-lg">
+                Read Full Story →
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Budget Expectations Box -->
+    <div class="budget-info-box">
+        <h4>🎯 Key Expectations from Budget 2026</h4>
+        <ul>
+            <li><strong>Income Tax Relief:</strong> Increased basic exemption limit to ₹5 lakh, simplified tax slabs</li>
+            <li><strong>Infrastructure Boost:</strong> Enhanced capital expenditure for roads, railways, and urban development</li>
+            <li><strong>MSME Support:</strong> Credit guarantee schemes and reduced compliance burden</li>
+            <li><strong>Agriculture Focus:</strong> Improved MSP mechanism and rural infrastructure</li>
+            <li><strong>Digital Economy:</strong> Incentives for startups and technology adoption</li>
+            <li><strong>Healthcare:</strong> Expanded health insurance coverage and medical infrastructure</li>
+        </ul>
+    </div>
+
+    <!-- Latest Budget News -->
+    <h2 class="section-heading">📰 Latest Budget 2026 News</h2>
+    
+    <div class="row">
+        {% for article in articles %}
+        <div class="col-md-4">
+            <div class="budget-article-card">
+                {% if article.image_url %}
+                <img src="{{ article.image_url }}" alt="{{ article.title }}" class="budget-article-image">
+                {% endif %}
+                
+                <div class="budget-article-content">
+                    <span class="budget-article-category">BUDGET 2026</span>
+                    
+                    <h3 class="budget-article-title">
+                        <a href="{{ article.url }}" target="_blank">
+                            {{ article.title }}
+                        </a>
+                    </h3>
+                    
+                    <p class="budget-article-description">
+                        {{ article.description|truncatewords:25 }}
+                    </p>
+                    
+                    <div class="budget-article-meta">
+                        <span>📅 {{ article.published_at|date:"d M Y" }}</span>
+                        <span>👁️ {{ article.view_count }} views</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <h4>📰 Budget News Coming Soon</h4>
+                <p>We're aggregating the latest Budget 2026 news for you. Check back shortly!</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- Economic Survey Section -->
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <div class="budget-info-box">
+                <h4>📊 Economic Survey 2026 Highlights</h4>
+                <ul>
+                    <li>GDP growth forecast: 6.8-7.2% for FY27</li>
+                    <li>Strong macro fundamentals and regulatory reforms</li>
+                    <li>Fiscal deficit at 62.3% of Budget Estimates (Nov 2025)</li>
+                    <li>Target fiscal deficit: 4.4% of GDP by FY26</li>
+                    <li>Focus on manufacturing and infrastructure push</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="budget-info-box">
+                <h4>🏛️ Previous Budget Highlights (2025-26)</h4>
+                <ul>
+                    <li>No income tax on income up to ₹12 lakh</li>
+                    <li>Restructured tax slabs under new regime</li>
+                    <li>Defence: ₹4,91,732 crore allocation</li>
+                    <li>Rural Development: ₹2,66,817 crore</li>
+                    <li>Focus on 4 engines: Agriculture, MSME, Investment, Exports</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-warning {
+        background: #d4af37;
+        border-color: #d4af37;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .btn-warning:hover {
+        background: #c49f2f;
+        border-color: #c49f2f;
+        color: white;
+    }
+</style>
+{% endblock %}

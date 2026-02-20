@@ -1,0 +1,801 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Times of Vedant - India's Leading News Portal{% endblock %}</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=PT+Serif:wght@400;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #c8102e;
+            --secondary-color: #1a1a1a;
+            --border-color: #ddd;
+            --text-dark: #333;
+            --text-light: #666;
+            --bg-light: #f8f8f8;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: #ffffff;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        /* Top Header Bar */
+        .top-header {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        
+        .top-header .date-info {
+            color: #ccc;
+        }
+        
+        .top-header a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 10px;
+            transition: color 0.3s;
+        }
+        
+        .top-header a:hover {
+            color: var(--primary-color);
+        }
+        
+        /* Main Header */
+        .main-header {
+            background: #fff;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .epaper-header-btn {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            color: #2c3e50;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 2px solid #d4af37;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 600;
+            position: relative;
+        }
+        
+        .epaper-header-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                rgba(0, 0, 0, 0.01) 0px,
+                rgba(0, 0, 0, 0.01) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            border-radius: 6px;
+            pointer-events: none;
+        }
+        
+        .epaper-header-btn:hover {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            color: #1a252f;
+            border-color: #c9a234;
+        }
+        
+        .epaper-header-btn i {
+            font-size: 20px;
+            color: #2c3e50;
+        }
+        
+        .epaper-header-btn span {
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+        
+        .logo-container {
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+        
+        @keyframes logoGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
+                transform: scale(1);
+            }
+            50% {
+                filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.7));
+                transform: scale(1.01);
+            }
+        }
+        
+        .logo-container img {
+            display: block;
+        }
+        
+        .title-container {
+            text-align: center;
+        }
+        
+        .newspaper-title {
+            font-family: 'Merriweather', serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--primary-color);
+            text-align: center;
+            letter-spacing: 2px;
+            margin: 10px 0;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+        
+        .newspaper-tagline {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+        
+        /* Navigation Bar */
+        .navbar {
+            background: var(--primary-color) !important;
+            padding: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-nav {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .nav-link {
+            color: #fff !important;
+            font-weight: 600;
+            padding: 15px 20px !important;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .nav-link:hover {
+            background: rgba(0,0,0,0.1);
+            border-bottom: 3px solid #d4af37;
+        }
+        
+        .budget-nav-link {
+            background: linear-gradient(145deg, #d4af37, #f4c542) !important;
+            color: #1a1a1a !important;
+            font-weight: 800 !important;
+            padding: 12px 24px !important;
+            border-radius: 8px !important;
+            text-transform: uppercase;
+            font-size: 0.95rem !important;
+            letter-spacing: 1px;
+            box-shadow: 
+                0 4px 6px rgba(212, 175, 55, 0.3),
+                0 1px 3px rgba(0, 0, 0, 0.2),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.15),
+                inset 0 2px 4px rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            position: relative;
+            transform: translateY(-2px);
+            animation: budgetPulse 2s ease-in-out infinite;
+        }
+        
+        .budget-nav-link:hover {
+            background: linear-gradient(145deg, #f4c542, #ffd700) !important;
+            box-shadow: 
+                0 6px 12px rgba(212, 175, 55, 0.4),
+                0 2px 4px rgba(0, 0, 0, 0.3),
+                inset 0 -3px 6px rgba(0, 0, 0, 0.2),
+                inset 0 3px 6px rgba(255, 255, 255, 0.5);
+            transform: translateY(-3px) scale(1.05);
+        }
+        
+        .budget-nav-link:active {
+            transform: translateY(0px);
+            box-shadow: 
+                0 2px 4px rgba(212, 175, 55, 0.3),
+                inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        @keyframes budgetPulse {
+            0%, 100% {
+                box-shadow: 
+                    0 4px 6px rgba(212, 175, 55, 0.3),
+                    0 1px 3px rgba(0, 0, 0, 0.2),
+                    inset 0 -2px 4px rgba(0, 0, 0, 0.15),
+                    inset 0 2px 4px rgba(255, 255, 255, 0.4);
+            }
+            50% {
+                box-shadow: 
+                    0 4px 8px rgba(212, 175, 55, 0.5),
+                    0 2px 4px rgba(255, 68, 68, 0.4),
+                    inset 0 -2px 4px rgba(0, 0, 0, 0.15),
+                    inset 0 2px 4px rgba(255, 255, 255, 0.5);
+            }
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #ff4444;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: liveBlink 1.5s ease-in-out infinite;
+            box-shadow: 0 0 8px #ff4444, 0 0 12px #ff4444;
+        }
+        
+        @keyframes liveBlink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.85); }
+        }
+        
+        .dropdown-menu {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .dropdown-item {
+            color: var(--text-dark);
+            padding: 10px 20px;
+            transition: all 0.3s;
+        }
+        
+        .dropdown-item:hover {
+            background: var(--bg-light);
+            color: var(--primary-color);
+        }
+        
+        /* News Cards */
+        .news-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            overflow: hidden;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        }
+        
+        .news-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            transform: translateY(-3px);
+        }
+        
+        .news-card img {
+            transition: transform 0.3s ease;
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .news-card:hover img {
+            transform: scale(1.05);
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        .card-title {
+            font-family: 'PT Serif', serif;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 1.1rem;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        
+        .card-title:hover {
+            color: var(--primary-color);
+        }
+        
+        .featured-badge {
+            background: var(--primary-color);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+        
+        .badge {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .sentiment-positive { color: #2e7d32; }
+        .sentiment-negative { color: #c62828; }
+        .sentiment-neutral { color: #757575; }
+        
+        .btn-read-more {
+            background: var(--primary-color);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-read-more:hover {
+            background: #a00d24;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .hero-article {
+            border: 1px solid var(--border-color);
+            background: #fff;
+        }
+        
+        .hero-article img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+        }
+        
+        .hero-article .card-body {
+            padding: 25px;
+        }
+        
+        .hero-article .card-title {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            border-left: 1px solid var(--border-color);
+            padding-left: 25px;
+        }
+        
+        .sidebar-title {
+            font-family: 'Merriweather', serif;
+            font-weight: 700;
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+        }
+        
+        .trending-item {
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 0;
+        }
+        
+        .trending-item:last-child {
+            border-bottom: none;
+        }
+        
+        .trending-number {
+            font-family: 'Merriweather', serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--primary-color);
+            opacity: 0.3;
+            margin-right: 15px;
+        }
+        
+        /* Section Headers */
+        .section-header {
+            font-family: 'Merriweather', serif;
+            font-weight: 700;
+            color: var(--secondary-color);
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            font-size: 1.5rem;
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--secondary-color);
+            color: #fff;
+            padding: 30px 0;
+            margin-top: 50px;
+            border-top: 3px solid var(--primary-color);
+        }
+        
+        .text-muted {
+            color: var(--text-light) !important;
+        }
+        
+        .page-link {
+            background: #fff;
+            border-color: var(--border-color);
+            color: var(--primary-color);
+        }
+        
+        .page-link:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #fff;
+        }
+        
+        .page-item.active .page-link {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        /* Category Badge */
+        .category-badge {
+            background: var(--primary-color);
+            color: #fff;
+            padding: 3px 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        /* Stock Market Ticker */
+        .stock-ticker {
+            background: #000;
+            color: #fff;
+            padding: 8px 0;
+            font-size: 13px;
+            overflow: hidden;
+            border-bottom: 1px solid #333;
+            position: relative;
+        }
+        
+        .stock-ticker-content {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            white-space: nowrap;
+            animation: scroll-left 90s linear infinite;
+        }
+        
+        @keyframes scroll-left {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+        
+        .stock-ticker:hover .stock-ticker-content {
+            animation-play-state: paused;
+        }
+        
+        .stock-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 15px;
+            border-right: 1px solid #333;
+        }
+        
+        .stock-item:last-child {
+            border-right: none;
+        }
+        
+        .stock-name {
+            font-weight: 700;
+            color: #fff;
+        }
+        
+        .stock-price {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .stock-change {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .stock-change.up {
+            color: #4caf50;
+        }
+        
+        .stock-change.down {
+            color: #f44336;
+        }
+        
+        .stock-arrow {
+            font-size: 10px;
+        }
+        
+        .market-status {
+            color: #4caf50;
+            font-weight: 700;
+            padding: 0 15px;
+        }
+        
+        .market-link {
+            color: #ffa500;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0 15px;
+        }
+        
+        .market-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive styles for ePaper button */
+        @media (max-width: 992px) {
+            .epaper-header-btn {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+            
+            .main-header .col-md-3,
+            .main-header .col-md-6 {
+                text-align: center !important;
+                margin-bottom: 10px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .epaper-header-btn {
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+            
+            .epaper-header-btn i {
+                font-size: 18px;
+            }
+            
+            .epaper-header-btn span {
+                font-size: 12px;
+            }
+            
+            .newspaper-tagline {
+                font-size: 0.8rem !important;
+            }
+            
+            .logo-container img {
+                height: 50px !important;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Stock Market Ticker -->
+    <div class="stock-ticker">
+        <div class="container">
+            <div class="stock-ticker-content" id="stockTicker">
+                <span class="market-status">⚫ MARKET LIVE</span>
+                <div class="stock-item">
+                    <span class="stock-name">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <div class="main-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-9">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="logo-container">
+                            <img src="{% static 'images/logo.svg' %}" alt="Times of Vedant Logo" style="height: 60px; width: auto;">
+                        </div>
+                        <div class="newspaper-tagline" style="font-size: 0.95rem; color: #666; margin: 0;">
+                            Breaking News • Live Updates Every 2 Minutes • Verified Sources
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 text-end">
+                    <a href="{% url 'news:epaper' %}" class="epaper-header-btn">
+                        <i class="far fa-newspaper"></i>
+                        <span>ePaper</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'news:home' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link budget-nav-link" href="{% url 'news:budget_home' %}">
+                            <span class="live-indicator"></span>Budget 2026
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'news:india' %}"><i class="fas fa-flag"></i> India</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="stateDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-map-marker-alt"></i> States
+                        </a>
+                        <ul class="dropdown-menu" style="max-height: 400px; overflow-y: auto;">
+                            {% for code, name in indian_states %}
+                            <li><a class="dropdown-item" href="{% url 'news:state' code %}">{{ name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="continentDropdown" role="button" data-bs-toggle="dropdown">
+                            World
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for code, name in continents %}
+                            <li><a class="dropdown-item" href="{% url 'news:continent' code %}">{{ name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    {% for code, name in categories %}
+                    {% if code != 'BUDGET' and code != 'WORLD' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'news:category' code %}">{{ name }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 style="font-family: 'Merriweather', serif; font-weight: 700;">Times of Vedant</h5>
+                    <p>India's most trusted news source with comprehensive coverage of national, state, and district-level news. Updated every 2 minutes.</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p>&copy; 2026 Times of Vedant. All rights reserved.</p>
+                    <p>
+                        <a href="#" class="text-white me-3"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-white me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-white me-3"><i class="fab fa-youtube"></i></a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Stock Market Ticker Script -->
+    <script>
+        // Fetch live stock market data
+        async function fetchStockData() {
+            try {
+                const response = await fetch('/api/stocks/');
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    updateStockTicker(result.data);
+                }
+            } catch (error) {
+                console.error('Error fetching stock data:', error);
+            }
+        }
+        
+        // Update the stock ticker display
+        function updateStockTicker(stockData) {
+            const ticker = document.getElementById('stockTicker');
+            
+            let html = '<span class="market-status">🟢 MARKET LIVE</span>';
+            
+            stockData.forEach(stock => {
+                const arrow = stock.direction === 'up' ? '▲' : '▼';
+                const changeClass = stock.direction === 'up' ? 'up' : 'down';
+                const sign = stock.change >= 0 ? '+' : '';
+                
+                html += `
+                    <div class="stock-item">
+                        <span class="stock-name">${stock.name}</span>
+                        <span class="stock-price">${stock.price.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <span class="stock-change ${changeClass}">
+                            ${sign}${stock.change.toFixed(2)} (${sign}${stock.change_percent.toFixed(2)}%) 
+                            <span class="stock-arrow">${arrow}</span>
+                        </span>
+                    </div>
+                `;
+            });
+            
+            html += '<a href="#" class="market-link">View Market Dashboard ➤</a>';
+            
+            // Duplicate content for seamless infinite scroll
+            ticker.innerHTML = html + html;
+        }
+        
+        // Fetch data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchStockData();
+            
+            // Refresh every 60 seconds
+            setInterval(fetchStockData, 60000);
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

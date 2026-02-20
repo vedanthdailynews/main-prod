@@ -1,0 +1,6 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Shell scripts must use LF on all platforms (required for Linux/Render)
+*.sh text eol=lf
+Procfile text eol=lf

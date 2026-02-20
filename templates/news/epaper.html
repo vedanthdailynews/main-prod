@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ePaper - Times of Vedant - {{ current_date }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ePaper Header */
+    .epaper-header {
+        background: #fff;
+        padding: 15px 0;
+        border-bottom: 2px solid #e0e0e0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .epaper-title {
+        font-family: 'Merriweather', serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0;
+    }
+    
+    .epaper-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin: 0;
+    }
+    
+    .epaper-controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .view-pdf-btn {
+        background: #d32f2f;
+        color: #fff;
+        padding: 8px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    
+    .view-pdf-btn:hover {
+        background: #c62828;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(211, 47, 47, 0.3);
+    }
+    
+    .view-tabs {
+        display: flex;
+        gap: 0;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    
+    .view-tab {
+        padding: 10px 25px;
+        background: #fff;
+        color: #333;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 15px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .view-tab.active {
+        background: #d32f2f;
+        color: #fff;
+    }
+    
+    .view-tab:hover:not(.active) {
+        background: #f5f5f5;
+        color: #d32f2f;
+    }
+    
+    .date-selector {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .date-selector input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    
+    /* Print View (PDF) */
+    .print-view-container {
+        background: #2c2c2c;
+        min-height: 80vh;
+        padding: 40px 20px;
+    }
+    
+    .pdf-viewer {
+        background: #fff;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        box-shadow: 0 10px 50px rgba(0,0,0,0.8);
+        border-radius: 5px;
+    }
+    
+    .pdf-iframe {
+        width: 100%;
+        height: 800px;
+        border: none;
+    }
+    
+    .no-paper-message {
+        text-align: center;
+        padding: 60px 20px;
+        background: #fff;
+        border-radius: 10px;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .no-paper-message i {
+        font-size: 64px;
+        color: #ccc;
+        margin-bottom: 20px;
+    }
+    
+    /* Digital View */
+    .digital-view-container {
+        background: #2c2c2c;
+        min-height: 80vh;
+        padding: 20px 0;
+    }
+    
+    .digital-toolbar {
+        background: #1a1a1a;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .section-selector select,
+    .page-selector input {
+        background: #333;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    
+    .epaper-page {
+        background: #ffffff;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px;
+        box-shadow: 0 10px 50px rgba(0,0,0,0.8);
+        border-radius: 5px;
+    }
+    
+    .newspaper-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    
+    .newspaper-article {
+        border: 1px solid #ddd;
+        padding: 15px;
+    }
+    
+    .newspaper-article.large {
+        grid-column: span 2;
+        grid-row: span 2;
+    }
+    
+    .article-headline {
+        font-family: Georgia, serif;
+        font-size: 20px;
+        font-weight: bold;
+        color: #000;
+        margin-bottom: 10px;
+    }
+    
+    .large .article-headline {
+        font-size: 28px;
+    }
+    
+    @media (max-width: 768px) {
+        .newspaper-grid {
+            grid-template-columns: 1fr;
+        }
+        .newspaper-article.large {
+            grid-column: span 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="epaper-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="epaper-title">ePaper <span style="font-size: 20px; color: #666;">| THE TIMES OF VEDANT</span></h1>
+                <p class="epaper-subtitle">{{ paper.edition|default:"Delhi Edition" }}</p>
+            </div>
+            <div class="col-md-6">
+                <div class="epaper-controls justify-content-end">
+                    {% if paper and paper.pdf_file %}
+                    <a href="{{ paper.pdf_file.url }}" target="_blank" class="view-pdf-btn">
+                        <i class="fas fa-file-pdf"></i> View in PDF
+                    </a>
+                    {% endif %}
+                    
+                    <div class="view-tabs">
+                        <a href="?date={{ current_date }}&view=print" class="view-tab {% if view_mode == 'print' %}active{% endif %}">Print View</a>
+                        <a href="?date={{ current_date }}&view=digital" class="view-tab {% if view_mode == 'digital' %}active{% endif %}">Digital View</a>
+                    </div>
+                    
+                    <div class="date-selector">
+                        <i class="fas fa-calendar-alt" style="color: #666;"></i>
+                        <input type="date" id="dateSelector" value="{{ current_date }}" max="{{ current_date }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if view_mode == 'print' %}
+    <div class="print-view-container">
+        <div class="container">
+            {% if paper and paper.pdf_file %}
+            <div class="pdf-viewer">
+                <iframe src="{{ paper.pdf_file.url }}" class="pdf-iframe"></iframe>
+            </div>
+            {% else %}
+            <div class="no-paper-message">
+                <i class="far fa-newspaper"></i>
+                <h3>No Paper Available</h3>
+                <p>The newspaper for {{ current_date|date:"F j, Y" }} has not been uploaded yet.</p>
+                <p style="margin-top: 20px;">
+                    <a href="?date={{ current_date }}&view=digital" class="btn btn-primary">View Digital Edition</a>
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="digital-view-container">
+        <div class="container">
+            <div class="digital-toolbar">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div class="section-selector">
+                        <label style="color: #fff; font-weight: bold;">Section:</label>
+                        <select id="sectionSelector">
+                            <option value="ALL">All Sections</option>
+                            {% for section_value, section_label in sections %}
+                            <option value="{{ section_value }}" {% if current_section == section_value %}selected{% endif %}>{{ section_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="page-selector">
+                        <label style="color: #fff; font-weight: bold;">Page:</label>
+                        <input type="number" id="pageSelector" value="{{ current_page|default:1 }}" min="1" max="{{ total_pages }}" style="width: 80px;">
+                        <span style="color: #fff;">of {{ total_pages }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="epaper-page">
+                {% if pdf_articles %}
+                <!-- Articles extracted from PDF -->
+                <div class="newspaper-grid">
+                    {% for article in pdf_articles %}
+                    <div class="newspaper-article medium">
+                        <h2 class="article-headline">{{ article.title }}</h2>
+                        <div style="font-family: Georgia, serif; line-height: 1.6; color: #333;">
+                            {{ article.description|truncatewords:80 }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% elif articles %}
+                <!-- Database articles (fallback) -->
+                <div class="newspaper-grid">
+                    {% for article in articles %}
+                    <div class="newspaper-article {{ article.epaper_size|lower }}">
+                        <h2 class="article-headline">
+                            <a href="{% url 'news:detail' article.pk %}" style="color: #000; text-decoration: none;">{{ article.title }}</a>
+                        </h2>
+                        {% if article.image_url and article.epaper_size != 'SMALL' %}
+                        <img src="{{ article.image_url }}" alt="{{ article.title }}" style="width:100%; margin-bottom:10px;">
+                        {% endif %}
+                        <div style="font-family: Georgia, serif; line-height: 1.6;">
+                            {{ article.description|truncatewords:50 }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center" style="padding: 60px; background: #fff; border-radius: 10px;">
+                    <h3 style="color: #666;">No articles available</h3>
+                    <p style="color: #999;">Upload a PDF in the admin panel or wait for articles to be added.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('dateSelector').addEventListener('change', function() {
+        window.location.href = '?date=' + this.value + '&view={{ view_mode }}';
+    });
+    
+    {% if view_mode == 'digital' %}
+    document.getElementById('pageSelector').addEventListener('change', function() {
+        window.location.href = '?date={{ current_date }}&view=digital&page=' + this.value;
+    });
+    {% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,17 @@
+/* Custom styles for Vedant Daily News */
+
+body {
+    font-family: 'Georgia', serif;
+}
+
+.navbar-brand {
+    font-weight: 700;
+}
+
+.news-card {
+    transition: all 0.3s ease;
+}
+
+.news-card:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
