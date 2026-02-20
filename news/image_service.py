@@ -2,8 +2,10 @@
 Smart contextual image service for news articles.
 Fetches relevant images based on named entities (people, orgs, events)
 mentioned in the article title and description.
-Uses Wikipedia's free REST API — no API key needed.
+Uses Wikipedia's free REST API and LoremFlickr — no API key needed.
 """
+import re
+import hashlib
 import requests
 import logging
 from functools import lru_cache
@@ -67,6 +69,69 @@ ENTITY_MAP = {
     'tata consultancy':         'Tata_Consultancy_Services',
     'tata motors':              'Tata_Motors',
     'tata group':               'Tata_Group',
+    # ── Tata Car Models ───────────────────────────────────────────────────
+    'tata punch ev':            'Tata_Punch_(electric)',
+    'tata punch':               'Tata_Punch_(electric)',
+    'tata nexon ev':            'Tata_Nexon_EV',
+    'tata nexon':               'Tata_Nexon',
+    'tata harrier':             'Tata_Harrier',
+    'tata safari':              'Tata_Safari',
+    'tata curvv':               'Tata_Curvv',
+    'tata altroz':              'Tata_Altroz',
+    'tata tiago ev':            'Tata_Tiago_EV',
+    'tata tiago':               'Tata_Tiago',
+    'tata tigor':               'Tata_Tigor',
+    # ── Maruti / Suzuki Models ────────────────────────────────────────────
+    'maruti suzuki':            'Maruti_Suzuki',
+    'maruti swift':             'Suzuki_Swift',
+    'maruti baleno':            'Suzuki_Baleno',
+    'maruti brezza':            'Maruti_Brezza',
+    'maruti alto':              'Maruti_Alto',
+    'maruti wagon r':           'Maruti_Wagon_R',
+    'maruti ertiga':            'Maruti_Ertiga',
+    'suzuki jimny':             'Suzuki_Jimny',
+    # ── Mahindra Car Models ───────────────────────────────────────────────
+    'mahindra xuv 3xo':         'Mahindra_XUV300',
+    'mahindra xuv700':          'Mahindra_XUV700',
+    'mahindra xuv400':          'Mahindra_XUV400',
+    'mahindra scorpio':         'Mahindra_Scorpio',
+    'mahindra thar':            'Mahindra_Thar',
+    'mahindra bolero':          'Mahindra_Bolero',
+    'mahindra be 6':            'Mahindra_BE_6',
+    # ── Hyundai / Kia Models ─────────────────────────────────────────────
+    'hyundai creta':            'Hyundai_Creta',
+    'hyundai i20':              'Hyundai_i20',
+    'hyundai verna':            'Hyundai_Verna',
+    'hyundai alcazar':          'Hyundai_Alcazar',
+    'kia seltos':               'Kia_Seltos',
+    'kia sonet':                'Kia_Sonet',
+    'kia carens':               'Kia_Carens',
+    'kia ev6':                  'Kia_EV6',
+    # ── International Car Brands ──────────────────────────────────────────
+    'ford':                     'Ford_Motor_Company',
+    'chevrolet':                'Chevrolet',
+    'volkswagen':               'Volkswagen',
+    'bmw':                      'BMW',
+    'mercedes benz':            'Mercedes-Benz',
+    'mercedes-benz':            'Mercedes-Benz',
+    'audi':                     'Audi',
+    'porsche':                  'Porsche',
+    'toyota':                   'Toyota',
+    'honda car':                'Honda',
+    'nissan':                   'Nissan',
+    'renault':                  'Renault',
+    'volvo car':                'Volvo_Cars',
+    'lamborghini':              'Lamborghini',
+    'ferrari':                  'Ferrari',
+    # ── EV / Auto keywords (matched title-only) ───────────────────────────
+    'electric vehicle':         'Electric_vehicle',
+    'ev charging':              'Charging_station',
+    'charging station':         'Charging_station',
+    'electric scooter':         'Electric_motorcycles_and_scooters',
+    'ola electric':             'Ola_Electric',
+    'ather energy':             'Ather_Energy',
+    'tvs iqube':                'TVS_Motor_Company',
+    'bajaj chetak':             'Bajaj_Auto',
     'infosys':                  'Infosys',
     'wipro':                    'Wipro',
     'hdfc bank':                'HDFC_Bank',
@@ -214,6 +279,23 @@ ENTITY_MAP = {
 # Sort keys longest-first so specific phrases match before single words
 _SORTED_ENTITY_KEYS = sorted(ENTITY_MAP.keys(), key=len, reverse=True)
 
+# ---------------------------------------------------------------------------
+# Stop words for keyword extraction
+# ---------------------------------------------------------------------------
+_STOP_WORDS = {
+    'a', 'an', 'the', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or',
+    'but', 'is', 'are', 'was', 'were', 'be', 'been', 'with', 'this', 'that',
+    'from', 'by', 'as', 'into', 'out', 'over', 'under', 'new', 'says', 'said',
+    'amid', 'after', 'since', 'while', 'due', 'its', 'his', 'her', 'their',
+    'our', 'you', 'we', 'he', 'she', 'it', 'they', 'what', 'how', 'when',
+    'where', 'why', 'who', 'all', 'no', 'not', 'than', 'then', 'now', 'just',
+    'more', 'also', 'has', 'have', 'had', 'get', 'got', 'up', 'about',
+    'launch', 'launches', 'launched', 'price', 'prices', 'start', 'starts',
+    'india', 'rs', 'lakh', 'crore', 'year', 'day', 'days', 'vs', 'per',
+    'top', 'best', 'here', 'know', 'check', 'report', 'reports', 'latest',
+    'big', 'key', 'live', 'breaking', 'update', 'updates', 'read', 'full',
+}
+
 
 @lru_cache(maxsize=512)
 def _fetch_wikipedia_thumbnail(wiki_title: str) -> str:
@@ -280,4 +362,38 @@ def get_contextual_image(title: str, description: str = '') -> str:
                 )
                 return img_url
 
+    return ''
+
+
+@lru_cache(maxsize=1024)
+def get_topic_image(title: str) -> str:
+    """
+    Extract meaningful keywords from the article title and fetch a topic-relevant
+    image from LoremFlickr (free, no API key needed). Uses a deterministic lock
+    seed so the same article title always returns the same image.
+
+    Example:
+      "Tata Punch EV Facelift Launched" → keywords: ['tata', 'punch', 'facelift']
+      → https://loremflickr.com/800/450/tata,punch,facelift?lock=49231
+    """
+    words = re.sub(r'[^\w\s]', ' ', title.lower()).split()
+    keywords = [w for w in words if w not in _STOP_WORDS and len(w) > 2][:5]
+
+    if not keywords:
+        return ''
+
+    # Deterministic lock: same title → same image every time
+    lock = int(hashlib.md5(title.encode()).hexdigest()[:8], 16) % 100000
+    query = ','.join(keywords[:4])
+    url = f"https://loremflickr.com/800/450/{query}?lock={lock}"
+
+    try:
+        resp = requests.get(url, timeout=8, allow_redirects=True)
+        if resp.status_code == 200:
+            final_url = resp.url
+            if 'staticflickr.com' in final_url or 'loremflickr.com' in final_url:
+                logger.debug(f"[ImageService] LoremFlickr '{query}' → {final_url[:70]}")
+                return final_url
+    except Exception as e:
+        logger.debug(f"[ImageService] LoremFlickr failed for '{title[:40]}': {e}")
     return ''

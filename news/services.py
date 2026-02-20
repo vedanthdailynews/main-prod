@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 import logging
 
 from news.models import NewsArticle, NewsSource, Continent
-from news.image_service import get_contextual_image
+from news.image_service import get_contextual_image, get_topic_image
 
 logger = logging.getLogger(__name__)
 
@@ -432,18 +432,22 @@ class GoogleNewsService:
                     raw_description = entry.get('summary', '')
                     clean_description = GoogleNewsService.clean_html(raw_description)
 
-                    # 1. Try contextual entity image (Modi, BSE, etc.)
+                    # 1. Try contextual entity image (Modi, Tata Punch EV, BSE, etc.)
                     image_url = get_contextual_image(entry.title, clean_description)
 
-                    # 2. Fall back to image embedded in RSS feed
+                    # 2. Try topic-relevant image via LoremFlickr keyword match
+                    if not image_url:
+                        image_url = get_topic_image(entry.title)
+
+                    # 3. Fall back to image embedded in RSS feed
                     if not image_url:
                         image_url = GoogleNewsService.extract_image_url(entry)
 
-                    # 3. Fall back to scraping the article page
+                    # 4. Fall back to scraping the article page
                     if not image_url:
                         image_url = GoogleNewsService.fetch_image_from_url(entry.link)
 
-                    # 4. Last resort: unique per-article placeholder
+                    # 5. Last resort: unique per-article placeholder
                     if not image_url:
                         image_url = GoogleNewsService.get_fallback_image(None, title=entry.title)
 
@@ -529,6 +533,8 @@ class GoogleNewsService:
                     clean_description = GoogleNewsService.clean_html(raw_description)
 
                     image_url = get_contextual_image(entry.title, clean_description)
+                    if not image_url:
+                        image_url = get_topic_image(entry.title)
                     if not image_url:
                         image_url = GoogleNewsService.extract_image_url(entry)
                     if not image_url:
