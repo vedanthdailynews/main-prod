@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 
+{% block extra_head %}
+{% if fetching_now %}<meta http-equiv="refresh" content="15">{% endif %}
+{% endblock %}
+
 {% block content %}
 {% comment %}
   HOME PAGE — India First Layout

@@ -10,3 +10,7 @@ python manage.py collectstatic --no-input
 
 # Run database migrations
 python manage.py migrate --no-input
+
+# Fetch initial news so the site has content immediately after deploy
+echo "Fetching initial news from Google News..."
+python manage.py fetch_news || echo "News fetch failed (non-fatal) — will retry on first request."

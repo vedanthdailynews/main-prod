@@ -13,8 +13,13 @@ class NewsConfig(AppConfig):
         This fetches news every 5 minutes without needing Redis or Celery.
         """
         import os
-        # Avoid running scheduler twice (Django reloader starts 2 processes)
-        if os.environ.get('RUN_MAIN') != 'true':
+        from django.conf import settings
+
+        # In development with auto-reloader, Django spawns a child process
+        # with RUN_MAIN=true — only run scheduler in that child to avoid duplicates.
+        # In production (gunicorn on Render), RUN_MAIN is not set, so we check
+        # DEBUG to decide: dev requires RUN_MAIN, production always starts.
+        if settings.DEBUG and os.environ.get('RUN_MAIN') != 'true':
             return
 
         try:

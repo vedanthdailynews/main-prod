@@ -51,6 +51,19 @@ class HomePageView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # If DB is empty (e.g. first request after a cold start or fresh deploy),
+        # trigger a synchronous news fetch so the page isn't blank.
+        if not NewsArticle.objects.exists():
+            try:
+                from news.services import GoogleNewsService
+                import threading
+                threading.Thread(
+                    target=GoogleNewsService.fetch_all_news, daemon=True
+                ).start()
+                context['fetching_now'] = True
+            except Exception:
+                pass
+
         # India section – top 12 latest Indian articles
         context['india_articles'] = (
             NewsArticle.objects
