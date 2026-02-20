@@ -800,37 +800,64 @@
     {% block extra_js %}{% endblock %}
 
     <script>
-    // ── Global image error handler ───────────────────────────────────────────
-    // If any article image fails to load (broken URL, hotlink block, etc.)
-    // swap it for a unique but consistent Picsum placeholder derived from
-    // the image alt text (article title).
+    // ── Image reliability handler ────────────────────────────────────────────
+    // 1. On DOMContentLoaded: immediately replace any LoremFlickr/Flickr images
+    //    already in the DB (they load successfully but are wrong/generic).
+    // 2. onerror: swap broken/blocked images for a unique Picsum placeholder.
+    // Both use djb2 hash of alt text → same article always → same placeholder.
     (function () {
-        function attachErrorHandler(img) {
-            img.addEventListener('error', function () {
-                if (img.dataset.errored) return; // prevent infinite loop
-                img.dataset.errored = '1';
-                var alt = (img.alt || img.src || 'news').trim();
-                // Simple djb2-style hash → same title always gives same image
-                var hash = 0;
-                for (var i = 0; i < alt.length; i++) {
-                    hash = ((hash << 5) - hash) + alt.charCodeAt(i);
-                    hash |= 0;
-                }
-                var seed = Math.abs(hash).toString(16).substring(0, 12) || 'default';
-                img.src = 'https://picsum.photos/seed/' + seed + '/800/450';
-            });
+        function picsumFromAlt(alt) {
+            var s = (alt || 'news').trim();
+            var h = 0;
+            for (var i = 0; i < s.length; i++) {
+                h = ((h << 5) - h) + s.charCodeAt(i);
+                h |= 0;
+            }
+            return 'https://picsum.photos/seed/' + Math.abs(h).toString(16).substring(0, 12) + '/800/450';
         }
-        // Attach to all current images
-        document.querySelectorAll('.news-card img, .hero-card img, .article-img').forEach(attachErrorHandler);
-        // Also attach to dynamically inserted images
+
+        function isBadSrc(src) {
+            return src && (
+                src.indexOf('loremflickr.com') !== -1 ||
+                src.indexOf('staticflickr.com') !== -1
+            );
+        }
+
+        function fixImg(img) {
+            // Replace bad src immediately (loaded but wrong image)
+            if (isBadSrc(img.src)) {
+                img.src = picsumFromAlt(img.alt);
+            }
+            // Attach onerror for broken/hotlinked URLs
+            if (!img.dataset.handlerSet) {
+                img.dataset.handlerSet = '1';
+                img.addEventListener('error', function () {
+                    if (img.dataset.errored) return;
+                    img.dataset.errored = '1';
+                    img.src = picsumFromAlt(img.alt);
+                });
+            }
+        }
+
+        function fixAll() {
+            document.querySelectorAll('.news-card img, .hero-card img, .article-img').forEach(fixImg);
+        }
+
+        // Run immediately + after DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fixAll);
+        } else {
+            fixAll();
+        }
+
+        // Watch for dynamically added images
         if (window.MutationObserver) {
             new MutationObserver(function (mutations) {
                 mutations.forEach(function (m) {
                     m.addedNodes.forEach(function (node) {
-                        if (node.nodeType === 1) {
-                            if (node.tagName === 'IMG') attachErrorHandler(node);
-                            node.querySelectorAll && node.querySelectorAll('.news-card img, .hero-card img, .article-img').forEach(attachErrorHandler);
-                        }
+                        if (node.nodeType !== 1) return;
+                        if (node.tagName === 'IMG') { fixImg(node); return; }
+                        node.querySelectorAll && node.querySelectorAll('.news-card img, .hero-card img, .article-img').forEach(fixImg);
                     });
                 });
             }).observe(document.body, { childList: true, subtree: true });

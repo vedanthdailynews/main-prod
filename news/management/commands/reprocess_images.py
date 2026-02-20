@@ -1,26 +1,26 @@
 """
 Management command to reprocess images for existing articles.
-For articles with no image or a generic Picsum placeholder,
-re-runs the contextual entity lookup + LoremFlickr topic match
-so they get a relevant image instead of a random one.
+Re-runs Wikipedia entity + search lookup so articles get accurate images.
+Also fixes articles that ended up with LoremFlickr cat-statue placeholders.
 
 Run with: python manage.py reprocess_images
 """
+import hashlib
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 from news.models import NewsArticle
-from news.image_service import get_contextual_image, get_topic_image
+from news.image_service import get_contextual_image
 from news.services import GoogleNewsService
 
 
 class Command(BaseCommand):
-    help = 'Reprocess images for articles with missing or Picsum placeholder images'
+    help = 'Reprocess images for articles with missing, Picsum, or LoremFlickr placeholder images'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--all',
             action='store_true',
-            help='Reprocess ALL articles (default: only blank/Picsum ones)',
+            help='Reprocess ALL articles (default: only bad/placeholder ones)',
         )
         parser.add_argument(
             '--limit',
@@ -33,10 +33,13 @@ class Command(BaseCommand):
         if options['all']:
             qs = NewsArticle.objects.all()
         else:
+            # Target: blank, Picsum random placeholders, and the LoremFlickr cat
             qs = NewsArticle.objects.filter(
                 Q(image_url__isnull=True) |
                 Q(image_url='') |
-                Q(image_url__contains='picsum.photos')
+                Q(image_url__contains='picsum.photos') |
+                Q(image_url__contains='loremflickr.com') |
+                Q(image_url__contains='staticflickr.com')
             )
 
         qs = qs.order_by('-published_at')[:options['limit']]
@@ -47,16 +50,11 @@ class Command(BaseCommand):
         already_good = 0
 
         for article in qs.iterator(chunk_size=50):
-            # Step 1: entity map (Wikipedia)
+            # Step 1: Wikipedia entity map + search
             img = get_contextual_image(article.title, article.description or '')
 
-            # Step 2: LoremFlickr topic match
+            # Step 2: Picsum unique hash fallback (reliable, distinct per article)
             if not img:
-                img = get_topic_image(article.title)
-
-            # Step 3: Picsum unique fallback
-            if not img:
-                import hashlib
                 seed = hashlib.md5(article.title.encode()).hexdigest()[:16]
                 img = f'https://picsum.photos/seed/{seed}/800/450'
 
@@ -68,5 +66,8 @@ class Command(BaseCommand):
                 already_good += 1
 
         self.stdout.write(self.style.SUCCESS(
+            f'Done. Updated: {updated} | Unchanged: {already_good}'
+        ))
+
             f'Done. Updated: {updated} | Already had good image: {already_good}'
         ))

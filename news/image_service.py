@@ -481,33 +481,3 @@ def get_contextual_image(title: str, description: str = '') -> str:
             return img_url
 
     return ''
-
-
-@lru_cache(maxsize=1024)
-def get_topic_image(title: str) -> str:
-    """
-    LoremFlickr fallback — fetches a Flickr photo matching title keywords.
-    Used only when Wikipedia returns nothing (very new events, local news, etc.)
-
-    Deterministic lock seed ensures the same article always gets the same image.
-    """
-    words = re.sub(r'[^\w\s]', ' ', title.lower()).split()
-    keywords = [w for w in words if w not in _STOP_WORDS_LC and len(w) > 2][:5]
-
-    if not keywords:
-        return ''
-
-    lock = int(hashlib.md5(title.encode()).hexdigest()[:8], 16) % 100000
-    query = ','.join(keywords[:4])
-    url = f"https://loremflickr.com/800/450/{query}?lock={lock}"
-
-    try:
-        resp = requests.get(url, timeout=8, allow_redirects=True)
-        if resp.status_code == 200:
-            final_url = resp.url
-            if 'staticflickr.com' in final_url or 'loremflickr.com' in final_url:
-                logger.debug(f"[ImageService] LoremFlickr '{query}' → {final_url[:70]}")
-                return final_url
-    except Exception as e:
-        logger.debug(f"[ImageService] LoremFlickr failed for '{title[:40]}': {e}")
-    return ''
