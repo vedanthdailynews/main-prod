@@ -798,5 +798,44 @@
     </script>
     
     {% block extra_js %}{% endblock %}
+
+    <script>
+    // ── Global image error handler ───────────────────────────────────────────
+    // If any article image fails to load (broken URL, hotlink block, etc.)
+    // swap it for a unique but consistent Picsum placeholder derived from
+    // the image alt text (article title).
+    (function () {
+        function attachErrorHandler(img) {
+            img.addEventListener('error', function () {
+                if (img.dataset.errored) return; // prevent infinite loop
+                img.dataset.errored = '1';
+                var alt = (img.alt || img.src || 'news').trim();
+                // Simple djb2-style hash → same title always gives same image
+                var hash = 0;
+                for (var i = 0; i < alt.length; i++) {
+                    hash = ((hash << 5) - hash) + alt.charCodeAt(i);
+                    hash |= 0;
+                }
+                var seed = Math.abs(hash).toString(16).substring(0, 12) || 'default';
+                img.src = 'https://picsum.photos/seed/' + seed + '/800/450';
+            });
+        }
+        // Attach to all current images
+        document.querySelectorAll('.news-card img, .hero-card img, .article-img').forEach(attachErrorHandler);
+        // Also attach to dynamically inserted images
+        if (window.MutationObserver) {
+            new MutationObserver(function (mutations) {
+                mutations.forEach(function (m) {
+                    m.addedNodes.forEach(function (node) {
+                        if (node.nodeType === 1) {
+                            if (node.tagName === 'IMG') attachErrorHandler(node);
+                            node.querySelectorAll && node.querySelectorAll('.news-card img, .hero-card img, .article-img').forEach(attachErrorHandler);
+                        }
+                    });
+                });
+            }).observe(document.body, { childList: true, subtree: true });
+        }
+    })();
+    </script>
 </body>
 </html>

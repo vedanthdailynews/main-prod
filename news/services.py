@@ -216,36 +216,27 @@ class GoogleNewsService:
         return ''
     
     @staticmethod
-    def get_fallback_image(category: str = None) -> str:
+    def get_fallback_image(category: str = None, title: str = '') -> str:
         """
-        Get a fallback image URL based on category.
-        Uses Lorem Picsum for random placeholder images.
-        
+        Get a fallback image URL that is unique per article.
+        Uses Picsum Photos with a seed derived from the article title so every
+        article gets a consistent but visually distinct placeholder image.
+
         Args:
-            category: News category
-            
+            category: News category (kept for API compatibility, unused now)
+            title:    Article title used as the image seed
+
         Returns:
             Fallback image URL
         """
-        import random
-        
-        # Map categories to image IDs (Lorem Picsum has specific IDs)
-        # Using seed to get consistent themed images
-        category_seeds = {
-            'WORLD': [100, 200, 300, 400, 500],
-            'BUSINESS': [10, 20, 30, 40, 50],
-            'TECHNOLOGY': [1, 2, 3, 4, 5],
-            'ENTERTAINMENT': [250, 350, 450, 550, 650],
-            'SPORTS': [600, 700, 800, 900, 1000],
-            'SCIENCE': [150, 250, 350, 450, 550],
-            'HEALTH': [180, 280, 380, 480, 580],
-        }
-        
-        # Get a random seed for the category
-        seeds = category_seeds.get(category, [50, 100, 150, 200, 250])
-        seed = random.choice(seeds)
-        
-        # Use Lorem Picsum API (reliable and works offline/locally)
+        import hashlib
+        # Derive a short alphanumeric seed from the title so the same article
+        # always gets the same image, but different articles get different ones.
+        if title:
+            seed = hashlib.md5(title.encode()).hexdigest()[:16]
+        else:
+            import random
+            seed = str(random.randint(1, 9999))
         return f"https://picsum.photos/seed/{seed}/800/450"
     
     @staticmethod
@@ -298,9 +289,9 @@ class GoogleNewsService:
                     if not image_url:
                         image_url = GoogleNewsService.fetch_image_from_url(entry.link)
 
-                    # 4. Last resort: category placeholder
+                    # 4. Last resort: unique per-article placeholder
                     if not image_url:
-                        image_url = GoogleNewsService.get_fallback_image(None)
+                        image_url = GoogleNewsService.get_fallback_image(None, title=entry.title)
 
                     # Get source name
                     source_name = entry.get('source', {}).get('title', 'Google News')

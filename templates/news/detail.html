@@ -40,11 +40,13 @@
         </div>
         
         <!-- Article Image -->
-        {% if article.image_url %}
         <div class="mb-4">
-            <img src="{{ article.image_url }}" alt="{{ article.title }}" class="img-fluid rounded">
+            <img src="{% if article.image_url %}{{ article.image_url }}{% else %}https://picsum.photos/seed/{{ article.title|slugify|slice:':16' }}/1200/600{% endif %}"
+                 alt="{{ article.title }}"
+                 class="img-fluid rounded article-img"
+                 onerror="if(!this.dataset.errored){this.dataset.errored='1';var h=0,s=(this.alt||'news');for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}this.src='https://picsum.photos/seed/'+Math.abs(h).toString(16).substring(0,12)+'/1200/600';}"
+            >
         </div>
-        {% endif %}
         
         <!-- AI Summary -->
         {% if article.summary %}
