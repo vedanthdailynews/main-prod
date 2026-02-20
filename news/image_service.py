@@ -280,21 +280,80 @@ ENTITY_MAP = {
 _SORTED_ENTITY_KEYS = sorted(ENTITY_MAP.keys(), key=len, reverse=True)
 
 # ---------------------------------------------------------------------------
-# Stop words for keyword extraction
+# Words to skip when extracting proper nouns / search keywords
 # ---------------------------------------------------------------------------
-_STOP_WORDS = {
+_TITLE_SKIP_WORDS = {
+    'The', 'A', 'An', 'This', 'That', 'These', 'Those', 'Is', 'Are', 'Was',
+    'Were', 'Has', 'Have', 'Had', 'Be', 'Been', 'How', 'Why', 'When', 'What',
+    'Where', 'Who', 'Watch', 'Read', 'Get', 'See', 'Says', 'Said', 'Here',
+    'Breaking', 'Live', 'New', 'Big', 'Top', 'Key', 'Major', 'Latest',
+    'India', 'Indian', 'Report', 'Update', 'News', 'After', 'Over', 'From',
+}
+
+_STOP_WORDS_LC = {
     'a', 'an', 'the', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or',
     'but', 'is', 'are', 'was', 'were', 'be', 'been', 'with', 'this', 'that',
-    'from', 'by', 'as', 'into', 'out', 'over', 'under', 'new', 'says', 'said',
+    'from', 'by', 'as', 'into', 'out', 'over', 'under', 'says', 'said',
     'amid', 'after', 'since', 'while', 'due', 'its', 'his', 'her', 'their',
     'our', 'you', 'we', 'he', 'she', 'it', 'they', 'what', 'how', 'when',
     'where', 'why', 'who', 'all', 'no', 'not', 'than', 'then', 'now', 'just',
-    'more', 'also', 'has', 'have', 'had', 'get', 'got', 'up', 'about',
+    'more', 'also', 'has', 'have', 'had', 'get', 'got', 'up', 'about', 'new',
     'launch', 'launches', 'launched', 'price', 'prices', 'start', 'starts',
     'india', 'rs', 'lakh', 'crore', 'year', 'day', 'days', 'vs', 'per',
     'top', 'best', 'here', 'know', 'check', 'report', 'reports', 'latest',
     'big', 'key', 'live', 'breaking', 'update', 'updates', 'read', 'full',
 }
+
+
+# ---------------------------------------------------------------------------
+# Core helpers
+# ---------------------------------------------------------------------------
+
+def _extract_proper_nouns(title: str) -> list:
+    """
+    Extract sequences of capitalized/acronym tokens from the original article
+    title — these are the most likely named entities (people, products, orgs).
+
+    "Tata Punch EV Facelift Launched in India"  → ['Tata Punch EV', 'Tata Punch EV Facelift']
+    "Narendra Modi meets Xi Jinping at G20"      → ['Narendra Modi', 'Xi Jinping', 'G20']
+    "Virat Kohli scores century vs Australia"    → ['Virat Kohli', 'Australia']
+
+    Returns list of candidate phrases sorted longest-first.
+    """
+    tokens = title.split()
+    candidates = []
+    current = []
+
+    for raw_token in tokens:
+        token = re.sub(r'[^\w\-]', '', raw_token)
+        if not token:
+            if current:
+                candidates.append(' '.join(current))
+                current = []
+            continue
+
+        # Accept: starts-with-capital OR all-caps acronym (EV, IPL, GDP…)
+        is_proper = (token[0].isupper() or (token.isupper() and len(token) > 1))
+        is_skip = token in _TITLE_SKIP_WORDS
+
+        if is_proper and not is_skip:
+            current.append(token)
+        else:
+            if len(current) >= 1:
+                candidates.append(' '.join(current))
+            current = []
+
+    if current:
+        candidates.append(' '.join(current))
+
+    # Deduplicate, keep phrases with at least 1 word, sort longest-first
+    seen = set()
+    result = []
+    for c in sorted(set(candidates), key=lambda x: len(x.split()), reverse=True):
+        if c not in seen and len(c) > 1:
+            seen.add(c)
+            result.append(c)
+    return result[:5]
 
 
 @lru_cache(maxsize=512)
@@ -315,52 +374,111 @@ def _fetch_wikipedia_thumbnail(wiki_title: str) -> str:
             thumbnail = data.get('thumbnail', {})
             src = thumbnail.get('source', '')
             if src:
-                # Upgrade to a larger image (320px wide instead of default)
-                src = src.replace('/320px-', '/480px-')
+                src = re.sub(r'/\d+px-', '/600px-', src)
                 return src
     except Exception as e:
-        logger.debug(f"[ImageService] Wikipedia lookup failed for '{wiki_title}': {e}")
+        logger.debug(f"[ImageService] Wikipedia direct lookup failed for '{wiki_title}': {e}")
     return ''
 
 
+@lru_cache(maxsize=1024)
+def _search_wikipedia_thumbnail(query: str) -> str:
+    """
+    Search Wikipedia for any query string, take the top result, return its
+    thumbnail. Works for any subject — car models, politicians, films, places.
+
+    Uses the MediaWiki Action API (pageimages + search generator).
+    Free, no API key, rate-limit friendly.
+    """
+    try:
+        params = {
+            'action': 'query',
+            'generator': 'search',
+            'gsrsearch': query,
+            'gsrlimit': 5,
+            'gsrnamespace': 0,
+            'prop': 'pageimages',
+            'pithumbsize': 600,
+            'pilimit': 5,
+            'format': 'json',
+            'formatversion': 2,
+        }
+        resp = requests.get(
+            'https://en.wikipedia.org/w/api.php',
+            params=params,
+            timeout=8,
+            headers={'User-Agent': 'VedantDailyNews/1.0 (news aggregator)'},
+        )
+        if resp.status_code == 200:
+            pages = resp.json().get('query', {}).get('pages', [])
+            # Pages are returned in search-relevance order
+            for page in pages:
+                src = page.get('thumbnail', {}).get('source', '')
+                if src:
+                    # Skip logos, icons, flags — they're rarely what we want
+                    if any(skip in src.lower() for skip in [
+                        'flag_of', 'logo', 'icon', 'emblem', 'coat_of_arms',
+                        'wikimedia', 'commons-logo', 'question_mark',
+                    ]):
+                        continue
+                    logger.debug(
+                        f"[ImageService] Wikipedia search '{query}' → "
+                        f"{page.get('title')} → {src[:60]}"
+                    )
+                    return src
+    except Exception as e:
+        logger.debug(f"[ImageService] Wikipedia search API failed for '{query}': {e}")
+    return ''
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
 def get_contextual_image(title: str, description: str = '') -> str:
     """
-    Scan article text for known entities and return a relevant Wikipedia image.
+    Two-stage contextual image lookup — works for any article subject.
 
-    Strategy:
-    - Short keywords (1-2 words, e.g. 'ipl', 'bse', 'modi') → match TITLE only
-      to prevent false positives from unrelated stories mixed in RSS descriptions.
-    - Long keywords (3+ words, e.g. 'narendra modi') → match title first,
-      then description as fallback.
+    Stage 1 — Entity map (fast, for pre-mapped known entities)
+      Checks ENTITY_MAP against both title and description.
 
-    Args:
-        title:       Article headline
-        description: Article body / description
+    Stage 2 — Wikipedia search (universal, handles anything)
+      Extracts proper-noun phrases from the title, searches Wikipedia for
+      each one, and returns the thumbnail of the best matching article.
+      Covers politicians, celebrities, car models, companies, events, etc.
+      that aren't pre-listed in the entity map.
 
-    Returns:
-        Image URL string, or empty string if nothing matched.
+    Examples:
+      "Tata Punch EV Facelift Launched" → Wikipedia search "Tata Punch EV"
+                                          → returns Tata Punch EV photo
+      "Shehbaz Sharif visits Beijing"   → Wikipedia search "Shehbaz Sharif"
+                                          → returns Shehbaz Sharif portrait
+      "Virat Kohli scores century"      → Wikipedia search "Virat Kohli"
+                                          → returns Virat Kohli photo
     """
     title_lower = title.lower()
-    desc_lower = description.lower()
+    desc_lower  = description.lower()
 
+    # ── Stage 1: pre-mapped entity lookup ───────────────────────────────
     for keyword in _SORTED_ENTITY_KEYS:
         word_count = len(keyword.split())
-
-        # Short / single-word keywords: title only (avoid pollution from RSS multi-story descriptions)
         if word_count <= 2:
             matched = keyword in title_lower
         else:
-            # Long multi-word phrases: check title first, then description
             matched = (keyword in title_lower) or (keyword in desc_lower)
 
         if matched:
-            wiki_title = ENTITY_MAP[keyword]
-            img_url = _fetch_wikipedia_thumbnail(wiki_title)
+            img_url = _fetch_wikipedia_thumbnail(ENTITY_MAP[keyword])
             if img_url:
-                logger.debug(
-                    f"[ImageService] Matched '{keyword}' ({word_count}w, {'title' if keyword in title_lower else 'desc'}) → {wiki_title}"
-                )
+                logger.debug(f"[ImageService] Entity map hit: '{keyword}'")
                 return img_url
+
+    # ── Stage 2: Wikipedia search on proper-noun phrases from title ──────
+    candidates = _extract_proper_nouns(title)
+    for phrase in candidates:
+        img_url = _search_wikipedia_thumbnail(phrase)
+        if img_url:
+            return img_url
 
     return ''
 
@@ -368,21 +486,17 @@ def get_contextual_image(title: str, description: str = '') -> str:
 @lru_cache(maxsize=1024)
 def get_topic_image(title: str) -> str:
     """
-    Extract meaningful keywords from the article title and fetch a topic-relevant
-    image from LoremFlickr (free, no API key needed). Uses a deterministic lock
-    seed so the same article title always returns the same image.
+    LoremFlickr fallback — fetches a Flickr photo matching title keywords.
+    Used only when Wikipedia returns nothing (very new events, local news, etc.)
 
-    Example:
-      "Tata Punch EV Facelift Launched" → keywords: ['tata', 'punch', 'facelift']
-      → https://loremflickr.com/800/450/tata,punch,facelift?lock=49231
+    Deterministic lock seed ensures the same article always gets the same image.
     """
     words = re.sub(r'[^\w\s]', ' ', title.lower()).split()
-    keywords = [w for w in words if w not in _STOP_WORDS and len(w) > 2][:5]
+    keywords = [w for w in words if w not in _STOP_WORDS_LC and len(w) > 2][:5]
 
     if not keywords:
         return ''
 
-    # Deterministic lock: same title → same image every time
     lock = int(hashlib.md5(title.encode()).hexdigest()[:8], 16) % 100000
     query = ','.join(keywords[:4])
     url = f"https://loremflickr.com/800/450/{query}?lock={lock}"
