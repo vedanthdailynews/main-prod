@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Air Quality Index (AQI) - Global Cities | Times of Vedant{% endblock %}
+
+{% block extra_head %}
+<style>
+  .aqi-hero {
+    background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+    color: #fff; padding: 36px 0 28px; border-bottom: 4px solid #00c9a7;
+  }
+  .aqi-hero h1 { font-family:'Merriweather',serif; font-size:2rem; font-weight:900; margin-bottom:6px; }
+  .aqi-hero p  { opacity:.82; font-size:.95rem; margin:0; }
+
+  .aqi-search-wrap { position:relative; max-width:480px; }
+  .aqi-search-wrap input {
+    border-radius:30px; border:none;
+    padding:12px 50px 12px 20px; font-size:.95rem;
+    width:100%; box-shadow:0 4px 14px rgba(0,0,0,.35); outline:none;
+  }
+  .aqi-search-wrap button {
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    background:#00c9a7; border:none; border-radius:50%;
+    width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+    color:#fff; cursor:pointer; font-size:.95rem;
+  }
+  .aqi-search-wrap button:hover { background:#00a88a; }
+
+  .aqi-legend { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .legend-chip { display:inline-flex; align-items:center; gap:5px;
+    padding:4px 10px; border-radius:20px; font-size:.78rem; font-weight:600; }
+
+  .region-title {
+    font-family:'Merriweather',serif; font-size:1.05rem; font-weight:900;
+    margin:28px 0 14px; padding-bottom:6px; border-bottom:3px solid #00c9a7;
+  }
+
+  .aqi-card {
+    border-radius:12px; border:none;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+    transition:transform .2s,box-shadow .2s;
+    overflow:hidden; background:#fff; height:100%;
+  }
+  .aqi-card:hover { transform:translateY(-3px); box-shadow:0 6px 20px rgba(0,0,0,.13); }
+
+  .aqi-card-header { padding:13px 14px 9px; color:#fff; position:relative; }
+  .aqi-card-header .city-name  { font-weight:700; font-size:.92rem; margin:0; }
+  .aqi-card-header .country-name { font-size:.72rem; opacity:.85; margin-top:2px; }
+  .aqi-card-header .aqi-badge {
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    background:rgba(255,255,255,.22); border-radius:10px;
+    padding:3px 8px; font-size:.7rem; font-weight:700;
+  }
+  .aqi-moderate .aqi-badge { background:rgba(0,0,0,.12); }
+
+  .aqi-value-wrap { padding:10px 14px 4px; display:flex; align-items:center; gap:10px; }
+  .aqi-big { font-size:2.4rem; font-weight:900; line-height:1; color:#222; }
+  .aqi-lbl { font-size:.8rem; font-weight:700; color:#444; }
+  .aqi-sub { font-size:.7rem; color:#999; margin-top:1px; }
+
+  .aqi-pollutants { padding:6px 14px 12px; display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
+  .poll-item { text-align:center; background:#f6f8fa; border-radius:6px; padding:4px 3px; }
+  .poll-name { font-size:.62rem; color:#888; font-weight:600; text-transform:uppercase; }
+  .poll-val  { font-size:.8rem; font-weight:700; color:#333; }
+
+  .aqi-ts { padding:0 14px 9px; font-size:.68rem; color:#bbb; }
+
+  .aqi-loading { padding:24px; text-align:center; color:#aaa; font-size:.88rem; }
+  .aqi-loading .spinner {
+    display:inline-block; width:20px; height:20px;
+    border:3px solid #e0e0e0; border-top-color:#00c9a7;
+    border-radius:50%; animation:spin .7s linear infinite;
+    margin-right:6px; vertical-align:middle;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .aqi-err { padding:14px; text-align:center; color:#c8102e; font-size:.78rem; }
+
+  #searchResultSection { display:none; }
+  #searchResultSection .region-title { color:#c8102e; border-color:#c8102e; }
+
+  .refresh-bar {
+    background:rgba(0,201,167,.15); border:1px solid rgba(0,201,167,.4);
+    border-radius:8px; padding:8px 14px; font-size:.8rem; color:#b2fce4;
+    display:flex; align-items:center; gap:8px;
+  }
+  .live-pulse {
+    display:inline-block; width:9px; height:9px; border-radius:50%;
+    background:#00c9a7; animation:pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.5)} }
+
+  /* AQI colour classes */
+  .aqi-good      { background:#009966; }
+  .aqi-moderate  { background:#ffde33; color:#333 !important; }
+  .aqi-moderate .city-name, .aqi-moderate .country-name { color:#333 !important; }
+  .aqi-sensitive { background:#ff9933; }
+  .aqi-unhealthy { background:#cc0033; }
+  .aqi-vunhealthy{ background:#660099; }
+  .aqi-hazardous { background:#7e0023; }
+  .aqi-unknown   { background:#a8a8a8; }
+
+  #loadProgress { height:3px; background:#00c9a7; transition:width .4s ease; width:0%; }
+
+  @media(max-width:576px){ .aqi-hero h1{font-size:1.4rem} .aqi-big{font-size:2rem} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="height:3px;background:#1a2a30;"><div id="loadProgress"></div></div>
+
+<!-- Hero -->
+<div class="aqi-hero">
+  <div class="container">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-6">
+        <h1><i class="fas fa-wind me-2" style="color:#00c9a7;"></i>Live Air Quality Index</h1>
+        <p>Real-time AQI for <strong>{{ total_cities }} cities worldwide</strong> &nbsp;•&nbsp; Powered by Open-Meteo &nbsp;•&nbsp; Auto-refreshes every 5 min</p>
+        <div class="mt-3 aqi-legend">
+          <span class="legend-chip" style="background:#009966;color:#fff;">Good (0-50)</span>
+          <span class="legend-chip" style="background:#ffde33;color:#333;">Moderate (51-100)</span>
+          <span class="legend-chip" style="background:#ff9933;color:#fff;">Sensitive (101-150)</span>
+          <span class="legend-chip" style="background:#cc0033;color:#fff;">Unhealthy (151-200)</span>
+          <span class="legend-chip" style="background:#660099;color:#fff;">Very Unhealthy (201-300)</span>
+          <span class="legend-chip" style="background:#7e0023;color:#fff;">Hazardous (301+)</span>
+        </div>
+      </div>
+      <div class="col-lg-6 text-lg-end">
+        <div class="aqi-search-wrap ms-lg-auto mt-3 mt-lg-0">
+          <input type="text" id="citySearchInput" placeholder="🔍  Search any city worldwide…" autocomplete="off">
+          <button onclick="searchCity()" title="Search"><i class="fas fa-search"></i></button>
+        </div>
+        <div class="refresh-bar mt-3 d-inline-flex">
+          <span class="live-pulse"></span>
+          <span id="refreshStatus">Loading {{ total_cities }} cities…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search Result -->
+<div class="container mt-4" id="searchResultSection">
+  <div class="region-title" id="searchRegionTitle">Search Result</div>
+  <div class="row g-3" id="searchResultGrid"></div>
+</div>
+
+<!-- City grids -->
+<div class="container mt-2 pb-5">
+  {% for region, cities in regions.items %}
+  <div class="region-title">{{ region }}</div>
+  <div class="row g-3">
+    {% for city in cities %}
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2" id="card-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+      <div class="aqi-card"><div class="aqi-loading"><span class="spinner"></span></div></div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// City list from Django (lat/lon per city)
+const CITIES = {{ cities_json|safe }};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function aqiCls(v) {
+  if (v==null||isNaN(v)) return 'aqi-unknown';
+  if (v<=50)  return 'aqi-good';
+  if (v<=100) return 'aqi-moderate';
+  if (v<=150) return 'aqi-sensitive';
+  if (v<=200) return 'aqi-unhealthy';
+  if (v<=300) return 'aqi-vunhealthy';
+  return 'aqi-hazardous';
+}
+function aqiLbl(v) {
+  if (v==null||isNaN(v)) return 'No Data';
+  if (v<=50)  return 'Good';
+  if (v<=100) return 'Moderate';
+  if (v<=150) return 'Unhealthy for Sensitive';
+  if (v<=200) return 'Unhealthy';
+  if (v<=300) return 'Very Unhealthy';
+  return 'Hazardous';
+}
+function fmt(v,d){ return (v==null)?'–':parseFloat(v).toFixed(d!=null?d:1); }
+function fmtTime(iso){
+  if(!iso) return '';
+  try{
+    // Open-Meteo returns "YYYY-MM-DDTHH:MM" (no Z) — treat as local
+    const d=new Date(iso.includes('Z')?iso:iso+':00Z');
+    return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+
+           ', '+d.toLocaleDateString([],{day:'2-digit',month:'short'});
+  }catch(e){return iso;}
+}
+
+// ── Card HTML ─────────────────────────────────────────────────────────────────
+function cardHtml(city, data) {
+  const cur = data && data.current;
+  const aqi = cur ? parseInt(cur.us_aqi) : null;
+  const cls = aqiCls(aqi);
+  const lbl = aqiLbl(aqi);
+  return `
+    <div class="aqi-card-header ${cls}">
+      <p class="city-name">${city.name}</p>
+      <p class="country-name">${city.country}</p>
+      <span class="aqi-badge">${lbl}</span>
+    </div>
+    <div class="aqi-value-wrap">
+      <div class="aqi-big">${aqi!=null?aqi:'?'}</div>
+      <div><div class="aqi-lbl">${lbl}</div><div class="aqi-sub">US AQI</div></div>
+    </div>
+    <div class="aqi-pollutants">
+      <div class="poll-item"><div class="poll-name">PM2.5</div><div class="poll-val">${fmt(cur&&cur.pm2_5)}</div></div>
+      <div class="poll-item"><div class="poll-name">PM10</div><div class="poll-val">${fmt(cur&&cur.pm10)}</div></div>
+      <div class="poll-item"><div class="poll-name">O₃</div><div class="poll-val">${fmt(cur&&cur.ozone)}</div></div>
+      <div class="poll-item"><div class="poll-name">NO₂</div><div class="poll-val">${fmt(cur&&cur.nitrogen_dioxide)}</div></div>
+      <div class="poll-item"><div class="poll-name">SO₂</div><div class="poll-val">${fmt(cur&&cur.sulphur_dioxide)}</div></div>
+      <div class="poll-item"><div class="poll-name">CO</div><div class="poll-val">${fmt(cur&&cur.carbon_monoxide,0)}</div></div>
+    </div>
+    <div class="aqi-ts"><i class="far fa-clock me-1"></i>${fmtTime(cur&&cur.time)}</div>`;
+}
+
+// ── Fetch AQI from Open-Meteo (free, no key needed) ───────────────────────────
+function fetchAQI(lat, lon) {
+  const url = 'https://air-quality-api.open-meteo.com/v1/air-quality' +
+    '?latitude='+lat+'&longitude='+lon+
+    '&current=us_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone';
+  return fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+}
+
+// ── Build card-id → city index map (mirrors Django template forloop counters) ─
+const REGION_ORDER = [
+  "🇮🇳 India","🌏 Asia-Pacific","🌍 Middle East & Africa",
+  "🌍 Europe","🌎 Americas","🌏 Oceania"
+];
+const cardIds = [];
+let rIdx=0, prevR=null, cInR=0;
+for(let i=0;i<CITIES.length;i++){
+  const r=CITIES[i].region;
+  if(r!==prevR){rIdx++;cInR=0;prevR=r;}
+  cInR++;
+  cardIds.push('card-'+rIdx+'-'+cInR);
+}
+
+// ── Batch loader ──────────────────────────────────────────────────────────────
+const BATCH=10;
+let done=0;
+
+function tick(){
+  const pct=Math.round(done/CITIES.length*100);
+  document.getElementById('loadProgress').style.width=pct+'%';
+  document.getElementById('refreshStatus').textContent=
+    'Loading… '+done+' / '+CITIES.length+' cities';
+}
+
+function loadBatch(start){
+  const slice=CITIES.slice(start,start+BATCH);
+  if(!slice.length){
+    const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('refreshStatus').textContent=
+      '✓ All '+CITIES.length+' cities loaded · Updated '+now;
+    const bar=document.getElementById('loadProgress');
+    bar.style.width='100%';
+    setTimeout(()=>bar.style.opacity='0',1500);
+    return;
+  }
+  Promise.all(slice.map(async(city,idx)=>{
+    const id=cardIds[start+idx];
+    const wrap=document.querySelector('#'+id+' .aqi-card');
+    if(!wrap) return;
+    try{
+      const data=await fetchAQI(city.lat,city.lon);
+      wrap.innerHTML=cardHtml(city,data);
+    }catch(e){
+      wrap.innerHTML=`<div class="aqi-card-header aqi-unknown">
+        <p class="city-name">${city.name}</p>
+        <p class="country-name">${city.country}</p>
+      </div><div class="aqi-err"><i class="fas fa-exclamation-circle me-1"></i>Unavailable</div>`;
+    }
+    done++;tick();
+  })).then(()=>setTimeout(()=>loadBatch(start+BATCH),300));
+}
+
+function loadAll(){
+  done=0;
+  const bar=document.getElementById('loadProgress');
+  bar.style.opacity='1'; bar.style.width='0%';
+  cardIds.forEach(id=>{
+    const c=document.querySelector('#'+id+' .aqi-card');
+    if(c) c.innerHTML='<div class="aqi-loading"><span class="spinner"></span></div>';
+  });
+  loadBatch(0);
+}
+
+// ── Search: geocode + AQI ─────────────────────────────────────────────────────
+async function searchCity(){
+  const raw=document.getElementById('citySearchInput').value.trim();
+  if(!raw) return;
+  const sec=document.getElementById('searchResultSection');
+  const grid=document.getElementById('searchResultGrid');
+  const title=document.getElementById('searchRegionTitle');
+
+  sec.style.display='block';
+  title.textContent='Search: "'+raw+'"';
+  grid.innerHTML='<div class="col-12"><div class="aqi-loading"><span class="spinner"></span> Locating…</div></div>';
+  sec.scrollIntoView({behavior:'smooth',block:'start'});
+
+  try{
+    const geoRes=await fetch(
+      'https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(raw)+'&count=1&language=en&format=json'
+    );
+    const geoJson=await geoRes.json();
+    const r=geoJson.results&&geoJson.results[0];
+    if(!r){
+      grid.innerHTML='<div class="col-12 text-danger"><i class="fas fa-exclamation-circle me-1"></i>City "<strong>'+raw+'</strong>" not found. Try a different spelling.</div>';
+      return;
+    }
+    const city={name:r.name,country:r.country||'',lat:r.latitude,lon:r.longitude};
+    const data=await fetchAQI(city.lat,city.lon);
+    grid.innerHTML='<div class="col-6 col-sm-4 col-md-3 col-lg-2"><div class="aqi-card">'+cardHtml(city,data)+'</div></div>';
+  }catch(e){
+    grid.innerHTML='<div class="col-12 text-danger"><i class="fas fa-wifi me-1"></i>Error fetching data. Please try again.</div>';
+  }
+}
+
+document.getElementById('citySearchInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter') searchCity();
+});
+
+document.addEventListener('DOMContentLoaded',()=>{
+  loadAll();
+  setInterval(loadAll, 5*60*1000);
+});
+</script>
+{% endblock %}

@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 
 from django.shortcuts import render, get_object_or_404
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, TemplateView
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -414,4 +414,101 @@ class EPaperView(ListView):
         # Available dates with papers
         context['available_dates'] = DailyPaper.objects.filter(is_published=True).values_list('date', flat=True).distinct().order_by('-date')[:30]
         
+        return context
+
+class AQIView(TemplateView):
+    """Live Air Quality Index page for global cities."""
+    template_name = 'news/aqi.html'
+
+    # Each city: name, lat, lon, country
+    CITIES = [
+        # ── India ────────────────────────────────────────────────────────
+        {"name": "Delhi",         "lat": 28.6519,  "lon": 77.2315,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Mumbai",        "lat": 19.0760,  "lon": 72.8777,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Kolkata",       "lat": 22.5726,  "lon": 88.3639,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Chennai",       "lat": 13.0827,  "lon": 80.2707,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Bangalore",     "lat": 12.9716,  "lon": 77.5946,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Hyderabad",     "lat": 17.3850,  "lon": 78.4867,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Pune",          "lat": 18.5204,  "lon": 73.8567,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Ahmedabad",     "lat": 23.0225,  "lon": 72.5714,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Jaipur",        "lat": 26.9124,  "lon": 75.7873,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Lucknow",       "lat": 26.8467,  "lon": 80.9462,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Kanpur",        "lat": 26.4499,  "lon": 80.3319,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Patna",         "lat": 25.5941,  "lon": 85.1376,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Varanasi",      "lat": 25.3176,  "lon": 82.9739,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Agra",          "lat": 27.1767,  "lon": 78.0081,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Bhopal",        "lat": 23.2599,  "lon": 77.4126,  "country": "India",       "region": "🇮🇳 India"},
+        {"name": "Nagpur",        "lat": 21.1458,  "lon": 79.0882,  "country": "India",       "region": "🇮🇳 India"},
+        # ── Asia-Pacific ─────────────────────────────────────────────────
+        {"name": "Beijing",       "lat": 39.9042,  "lon": 116.4074, "country": "China",       "region": "🌏 Asia-Pacific"},
+        {"name": "Shanghai",      "lat": 31.2304,  "lon": 121.4737, "country": "China",       "region": "🌏 Asia-Pacific"},
+        {"name": "Guangzhou",     "lat": 23.1291,  "lon": 113.2644, "country": "China",       "region": "🌏 Asia-Pacific"},
+        {"name": "Tokyo",         "lat": 35.6762,  "lon": 139.6503, "country": "Japan",       "region": "🌏 Asia-Pacific"},
+        {"name": "Seoul",         "lat": 37.5665,  "lon": 126.9780, "country": "S. Korea",    "region": "🌏 Asia-Pacific"},
+        {"name": "Bangkok",       "lat": 13.7563,  "lon": 100.5018, "country": "Thailand",    "region": "🌏 Asia-Pacific"},
+        {"name": "Singapore",     "lat": 1.3521,   "lon": 103.8198, "country": "Singapore",   "region": "🌏 Asia-Pacific"},
+        {"name": "Jakarta",       "lat": -6.2088,  "lon": 106.8456, "country": "Indonesia",   "region": "🌏 Asia-Pacific"},
+        {"name": "Manila",        "lat": 14.5995,  "lon": 120.9842, "country": "Philippines", "region": "🌏 Asia-Pacific"},
+        {"name": "Dhaka",         "lat": 23.8103,  "lon": 90.4125,  "country": "Bangladesh",  "region": "🌏 Asia-Pacific"},
+        {"name": "Karachi",       "lat": 24.8607,  "lon": 67.0011,  "country": "Pakistan",    "region": "🌏 Asia-Pacific"},
+        {"name": "Taipei",        "lat": 25.0330,  "lon": 121.5654, "country": "Taiwan",      "region": "🌏 Asia-Pacific"},
+        {"name": "Kuala Lumpur",  "lat": 3.1390,   "lon": 101.6869, "country": "Malaysia",    "region": "🌏 Asia-Pacific"},
+        {"name": "Ho Chi Minh",   "lat": 10.8231,  "lon": 106.6297, "country": "Vietnam",     "region": "🌏 Asia-Pacific"},
+        {"name": "Kathmandu",     "lat": 27.7172,  "lon": 85.3240,  "country": "Nepal",       "region": "🌏 Asia-Pacific"},
+        # ── Middle East & Africa ─────────────────────────────────────────
+        {"name": "Dubai",         "lat": 25.2048,  "lon": 55.2708,  "country": "UAE",         "region": "🌍 Middle East & Africa"},
+        {"name": "Riyadh",        "lat": 24.7136,  "lon": 46.6753,  "country": "Saudi Arabia","region": "🌍 Middle East & Africa"},
+        {"name": "Cairo",         "lat": 30.0444,  "lon": 31.2357,  "country": "Egypt",       "region": "🌍 Middle East & Africa"},
+        {"name": "Tehran",        "lat": 35.6892,  "lon": 51.3890,  "country": "Iran",        "region": "🌍 Middle East & Africa"},
+        {"name": "Doha",          "lat": 25.2854,  "lon": 51.5310,  "country": "Qatar",       "region": "🌍 Middle East & Africa"},
+        {"name": "Istanbul",      "lat": 41.0082,  "lon": 28.9784,  "country": "Turkey",      "region": "🌍 Middle East & Africa"},
+        {"name": "Johannesburg",  "lat": -26.2041, "lon": 28.0473,  "country": "S. Africa",   "region": "🌍 Middle East & Africa"},
+        {"name": "Nairobi",       "lat": -1.2921,  "lon": 36.8219,  "country": "Kenya",       "region": "🌍 Middle East & Africa"},
+        {"name": "Lagos",         "lat": 6.5244,   "lon": 3.3792,   "country": "Nigeria",     "region": "🌍 Middle East & Africa"},
+        {"name": "Casablanca",    "lat": 33.5731,  "lon": -7.5898,  "country": "Morocco",     "region": "🌍 Middle East & Africa"},
+        # ── Europe ───────────────────────────────────────────────────────
+        {"name": "London",        "lat": 51.5074,  "lon": -0.1278,  "country": "UK",          "region": "🌍 Europe"},
+        {"name": "Paris",         "lat": 48.8566,  "lon": 2.3522,   "country": "France",      "region": "🌍 Europe"},
+        {"name": "Berlin",        "lat": 52.5200,  "lon": 13.4050,  "country": "Germany",     "region": "🌍 Europe"},
+        {"name": "Madrid",        "lat": 40.4168,  "lon": -3.7038,  "country": "Spain",       "region": "🌍 Europe"},
+        {"name": "Rome",          "lat": 41.9028,  "lon": 12.4964,  "country": "Italy",       "region": "🌍 Europe"},
+        {"name": "Amsterdam",     "lat": 52.3676,  "lon": 4.9041,   "country": "Netherlands", "region": "🌍 Europe"},
+        {"name": "Warsaw",        "lat": 52.2297,  "lon": 21.0122,  "country": "Poland",      "region": "🌍 Europe"},
+        {"name": "Moscow",        "lat": 55.7558,  "lon": 37.6173,  "country": "Russia",      "region": "🌍 Europe"},
+        {"name": "Kyiv",          "lat": 50.4501,  "lon": 30.5234,  "country": "Ukraine",     "region": "🌍 Europe"},
+        {"name": "Athens",        "lat": 37.9838,  "lon": 23.7275,  "country": "Greece",      "region": "🌍 Europe"},
+        {"name": "Bucharest",     "lat": 44.4268,  "lon": 26.1025,  "country": "Romania",     "region": "🌍 Europe"},
+        # ── Americas ─────────────────────────────────────────────────────
+        {"name": "New York",      "lat": 40.7128,  "lon": -74.0060, "country": "USA",         "region": "🌎 Americas"},
+        {"name": "Los Angeles",   "lat": 34.0522,  "lon": -118.2437,"country": "USA",         "region": "🌎 Americas"},
+        {"name": "Chicago",       "lat": 41.8781,  "lon": -87.6298, "country": "USA",         "region": "🌎 Americas"},
+        {"name": "Toronto",       "lat": 43.6532,  "lon": -79.3832, "country": "Canada",      "region": "🌎 Americas"},
+        {"name": "São Paulo",     "lat": -23.5505, "lon": -46.6333, "country": "Brazil",      "region": "🌎 Americas"},
+        {"name": "Mexico City",   "lat": 19.4326,  "lon": -99.1332, "country": "Mexico",      "region": "🌎 Americas"},
+        {"name": "Buenos Aires",  "lat": -34.6037, "lon": -58.3816, "country": "Argentina",   "region": "🌎 Americas"},
+        {"name": "Bogotá",        "lat": 4.7110,   "lon": -74.0721, "country": "Colombia",    "region": "🌎 Americas"},
+        {"name": "Lima",          "lat": -12.0464, "lon": -77.0428, "country": "Peru",        "region": "🌎 Americas"},
+        # ── Oceania ──────────────────────────────────────────────────────
+        {"name": "Sydney",        "lat": -33.8688, "lon": 151.2093, "country": "Australia",   "region": "🌏 Oceania"},
+        {"name": "Melbourne",     "lat": -37.8136, "lon": 144.9631, "country": "Australia",   "region": "🌏 Oceania"},
+        {"name": "Brisbane",      "lat": -27.4698, "lon": 153.0251, "country": "Australia",   "region": "🌏 Oceania"},
+        {"name": "Auckland",      "lat": -36.8509, "lon": 174.7645, "country": "New Zealand", "region": "🌏 Oceania"},
+    ]
+
+    # Build ordered region → cities dict for template
+    REGION_ORDER = [
+        "🇮🇳 India", "🌏 Asia-Pacific", "🌍 Middle East & Africa",
+        "🌍 Europe", "🌎 Americas", "🌏 Oceania",
+    ]
+
+    def get_context_data(self, **kwargs):
+        import json
+        context = super().get_context_data(**kwargs)
+        # Group cities by region preserving order
+        regions = {r: [] for r in self.REGION_ORDER}
+        for city in self.CITIES:
+            regions[city["region"]].append(city)
+        context['regions'] = regions
+        context['cities_json'] = json.dumps(self.CITIES)
+        context['total_cities'] = len(self.CITIES)
         return context

@@ -13,6 +13,7 @@ from news.views import (
     NewsDetailView,
     BudgetNewsView,
     EPaperView,
+    AQIView,
     NewsArticleViewSet,
     NewsSourceViewSet,
     StockMarketView,
@@ -29,6 +30,7 @@ urlpatterns = [
     # Template views
     path('', HomePageView.as_view(), name='home'),
     path('epaper/', EPaperView.as_view(), name='epaper'),
+    path('aqi/', AQIView.as_view(), name='aqi'),
     path('budget/', BudgetNewsView.as_view(), name='budget_home'),
     path('india/', IndiaNewsView.as_view(), name='india'),
     path('continent/<str:continent>/', ContinentNewsView.as_view(), name='continent'),

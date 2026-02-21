@@ -78,6 +78,42 @@
             flex-wrap: wrap;
         }
         
+        /* AQI header button */
+        .aqi-header-btn {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 60%, #2c5364 100%);
+            color: #00c9a7;
+            padding: 10px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 2px solid #00c9a7;
+            box-shadow: 0 3px 10px rgba(0,201,167,.2), inset 0 1px 0 rgba(255,255,255,.05);
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 600;
+            position: relative;
+            white-space: nowrap;
+        }
+        .aqi-header-btn:hover {
+            background: linear-gradient(135deg, #00c9a7 0%, #00a88a 100%);
+            color: #fff;
+            border-color: #00a88a;
+            box-shadow: 0 4px 16px rgba(0,201,167,.4);
+            transform: translateY(-1px);
+        }
+        .aqi-header-btn .aqi-live-dot {
+            display: inline-block; width: 8px; height: 8px;
+            background: #00c9a7; border-radius: 50%;
+            animation: aqiPulse 1.4s ease-in-out infinite;
+        }
+        .aqi-header-btn:hover .aqi-live-dot { background: #fff; }
+        @keyframes aqiPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: .5; transform: scale(1.5); }
+        }
+
         .epaper-header-btn {
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             color: #2c3e50;
@@ -587,9 +623,9 @@
         
         /* Responsive styles for ePaper button */
         @media (max-width: 992px) {
-            .epaper-header-btn {
-                padding: 8px 16px;
-                font-size: 13px;
+            .epaper-header-btn, .aqi-header-btn {
+                padding: 8px 12px;
+                font-size: 12px;
             }
             
             .main-header .col-md-3,
@@ -600,17 +636,18 @@
         }
         
         @media (max-width: 768px) {
-            .epaper-header-btn {
-                padding: 8px 14px;
-                font-size: 12px;
+            .epaper-header-btn, .aqi-header-btn {
+                padding: 7px 10px;
+                font-size: 11px;
+                gap: 5px;
             }
             
-            .epaper-header-btn i {
-                font-size: 18px;
+            .epaper-header-btn i, .aqi-header-btn i {
+                font-size: 14px;
             }
             
-            .epaper-header-btn span {
-                font-size: 12px;
+            .epaper-header-btn span, .aqi-header-btn span {
+                font-size: 11px;
             }
             
             .newspaper-tagline {
@@ -652,7 +689,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 text-end">
+                <div class="col-md-3 text-end d-flex align-items-center justify-content-end gap-2">
+                    <a href="{% url 'news:aqi' %}" class="aqi-header-btn">
+                        <span class="aqi-live-dot"></span>
+                        <i class="fas fa-wind"></i>
+                        <span>Air Quality</span>
+                    </a>
                     <a href="{% url 'news:epaper' %}" class="epaper-header-btn">
                         <i class="far fa-newspaper"></i>
                         <span>ePaper</span>
