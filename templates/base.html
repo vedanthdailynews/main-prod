@@ -41,11 +41,12 @@
         
         /* Top Header Bar */
         .top-header {
-            background: #1a1a1a;
+            background: linear-gradient(90deg, #0f0f0f 0%, #1a1a1a 50%, #0f0f0f 100%);
             color: #fff;
             padding: 8px 0;
             font-size: 13px;
             border-bottom: 3px solid var(--primary-color);
+            letter-spacing: 0.2px;
         }
         
         .top-header .date-info {
@@ -66,8 +67,9 @@
         /* Main Header */
         .main-header {
             background: #fff;
-            padding: 20px 0;
+            padding: 16px 0;
             border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
         
         .header-content {
@@ -215,7 +217,7 @@
         .navbar {
             background: var(--primary-color) !important;
             padding: 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 3px 12px rgba(200,16,46,0.35);
         }
         
         .navbar-nav {
@@ -226,17 +228,32 @@
         .nav-link {
             color: #fff !important;
             font-weight: 600;
-            padding: 15px 20px !important;
+            padding: 14px 18px !important;
             text-transform: uppercase;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
+            font-size: 0.82rem;
+            letter-spacing: 0.8px;
+            transition: background 0.2s, color 0.2s;
+            position: relative;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            right: 50%;
+            height: 3px;
+            background: #d4af37;
+            transition: left 0.25s ease, right 0.25s ease;
+        }
+        
+        .nav-link:hover::after {
+            left: 0;
+            right: 0;
         }
         
         .nav-link:hover {
-            background: rgba(0,0,0,0.1);
-            border-bottom: 3px solid #d4af37;
+            background: rgba(0,0,0,0.12);
         }
         
         
@@ -276,28 +293,28 @@
         /* News Cards */
         .news-card {
             background: #fff;
-            border: 1px solid var(--border-color);
-            border-radius: 0;
+            border: 1px solid rgba(0,0,0,0.07);
+            border-radius: 12px;
             overflow: hidden;
             margin-bottom: 20px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            transition: transform 0.28s ease, box-shadow 0.28s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
         }
         
         .news-card:hover {
-            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-            transform: translateY(-3px);
+            box-shadow: 0 14px 32px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.06);
+            transform: translateY(-5px);
         }
         
         .news-card img {
-            transition: transform 0.3s ease;
+            transition: transform 0.35s ease;
             width: 100%;
             height: 200px;
             object-fit: cover;
         }
         
         .news-card:hover img {
-            transform: scale(1.05);
+            transform: scale(1.04);
         }
         
         .card-body {
@@ -333,10 +350,11 @@
             background: var(--bg-light);
             color: var(--text-dark);
             border: 1px solid var(--border-color);
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 0.75rem;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 0.72rem;
             font-weight: 600;
+            letter-spacing: 0.2px;
         }
         
         .sentiment-positive { color: #2e7d32; }
@@ -348,19 +366,19 @@
             border: none;
             color: #fff;
             font-weight: 600;
-            padding: 8px 20px;
-            border-radius: 3px;
-            transition: all 0.3s ease;
+            padding: 7px 18px;
+            border-radius: 20px;
+            transition: all 0.25s ease;
             text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 0.5px;
+            font-size: 0.78rem;
+            letter-spacing: 0.6px;
         }
         
         .btn-read-more:hover {
             background: #a00d24;
             color: #fff;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 14px rgba(200,16,46,0.35);
         }
         
         /* Hero Section */
@@ -437,15 +455,61 @@
             text-transform: uppercase;
             font-size: 1.5rem;
         }
+
+        /* Scroll-to-top button */
+        #scrollTopBtn {
+            display: none;
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 999;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(200,16,46,0.4);
+            transition: opacity 0.3s, transform 0.3s;
+            align-items: center;
+            justify-content: center;
+        }
+        #scrollTopBtn:hover {
+            background: #a00d24;
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(200,16,46,0.5);
+        }
+        #scrollTopBtn.visible {
+            display: flex;
+        }
         
         /* Footer */
         .footer {
-            background: var(--secondary-color);
-            color: #fff;
-            padding: 30px 0;
-            margin-top: 50px;
-            border-top: 3px solid var(--primary-color);
+            background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
+            color: #ccc;
+            padding: 50px 0 20px;
+            margin-top: 60px;
+            border-top: 4px solid var(--primary-color);
         }
+        .footer h5, .footer h6 { color: #fff; font-weight: 700; }
+        .footer a { color: #aaa; text-decoration: none; transition: color 0.2s; }
+        .footer a:hover { color: var(--primary-color); }
+        .footer .footer-divider { border-color: #333; margin: 28px 0 20px; }
+        .footer .social-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: #2a2a2a;
+            color: #ccc;
+            font-size: 15px;
+            transition: background 0.2s, color 0.2s;
+            border: 1px solid #333;
+        }
+        .footer .social-icon:hover { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
         
         .text-muted {
             color: var(--text-light) !important;
@@ -455,6 +519,10 @@
             background: #fff;
             border-color: var(--border-color);
             color: var(--primary-color);
+            border-radius: 8px !important;
+            margin: 0 2px;
+            font-weight: 600;
+            font-size: 0.85rem;
         }
         
         .page-link:hover {
@@ -466,6 +534,7 @@
         .page-item.active .page-link {
             background: var(--primary-color);
             border-color: var(--primary-color);
+            box-shadow: 0 3px 8px rgba(200,16,46,0.3);
         }
         
         /* Category Badge */
@@ -604,6 +673,15 @@
             .logo-container img {
                 height: 50px !important;
             }
+
+            .main-header .newspaper-title {
+                font-size: 1.7rem !important;
+                letter-spacing: 1px !important;
+            }
+
+            .main-header .col-md-3:last-child {
+                justify-content: center !important;
+            }
         }
     </style>
     
@@ -626,17 +704,24 @@
     <div class="main-header">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-9">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="logo-container">
-                            <img src="{% static 'images/logo.svg' %}" alt="Times of Vedant Logo" style="height: 60px; width: auto;">
-                        </div>
-                        <div class="newspaper-tagline" style="font-size: 0.95rem; color: #666; margin: 0;">
-                            Breaking News • Live Updates Every 2 Minutes • Verified Sources
-                        </div>
+                <!-- Left: Logo -->
+                <div class="col-md-3 d-flex align-items-center gap-2">
+                    <div class="logo-container">
+                        <img src="{% static 'images/logo.svg' %}" alt="Times of Vedant Logo" style="height: 64px; width: auto;">
+                    </div>
+                    <div class="d-none d-lg-block" style="font-size:0.73rem;color:#999;line-height:1.5;">
+                        <span class="live-indicator"></span><span style="font-weight:700;color:#c8102e;">LIVE</span><br>
+                        Updated every 5 min
                     </div>
                 </div>
-                <div class="col-md-3 text-end d-flex align-items-center justify-content-end gap-2">
+                <!-- Center: Newspaper Title -->
+                <div class="col-md-6 text-center">
+                    <div class="newspaper-title" style="font-family:'Merriweather',serif;font-size:2.4rem;font-weight:900;color:#c8102e;letter-spacing:2px;text-transform:uppercase;line-height:1;margin:0;">Times of Vedant</div>
+                    <div style="border-top:1px solid #ddd;border-bottom:4px double #c8102e;margin:6px auto;max-width:420px;"></div>
+                    <div class="newspaper-tagline" style="font-size:0.78rem;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin:0;">Truth · Speed · Integrity</div>
+                </div>
+                <!-- Right: Action Buttons -->
+                <div class="col-md-3 d-flex align-items-center justify-content-end gap-2">
                     <a href="{% url 'news:aqi' %}" class="aqi-header-btn">
                         <span class="aqi-live-dot"></span>
                         <i class="fas fa-wind"></i>
@@ -709,20 +794,55 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5 style="font-family: 'Merriweather', serif; font-weight: 700;">Times of Vedant</h5>
-                    <p>India's most trusted news source with comprehensive coverage of national, state, and district-level news. Updated every 2 minutes.</p>
+            <div class="row g-4">
+                <!-- Brand column -->
+                <div class="col-lg-4 col-md-6">
+                    <h5 style="font-family:'Merriweather',serif;font-size:1.3rem;border-bottom:2px solid var(--primary-color);padding-bottom:8px;margin-bottom:14px;">Times of Vedant</h5>
+                    <p style="font-size:0.88rem;line-height:1.7;">India's most trusted digital newspaper delivering verified news across states, categories and the globe — updated every 5 minutes.</p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
                 </div>
-                <div class="col-md-6 text-end">
-                    <p>&copy; 2026 Times of Vedant. All rights reserved.</p>
-                    <p>
-                        <a href="#" class="text-white me-3"><i class="fab fa-facebook"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-youtube"></i></a>
-                    </p>
+                <!-- Quick links -->
+                <div class="col-lg-2 col-md-6">
+                    <h6 style="text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #333;padding-bottom:8px;margin-bottom:12px;">Quick Links</h6>
+                    <ul class="list-unstyled" style="font-size:0.87rem;line-height:2;">
+                        <li><a href="{% url 'news:home' %}"><i class="fas fa-chevron-right fa-xs me-1" style="color:var(--primary-color);"></i>Home</a></li>
+                        <li><a href="{% url 'news:india' %}"><i class="fas fa-chevron-right fa-xs me-1" style="color:var(--primary-color);"></i>India News</a></li>
+                        <li><a href="{% url 'news:aqi' %}"><i class="fas fa-chevron-right fa-xs me-1" style="color:var(--primary-color);"></i>Air Quality</a></li>
+                        <li><a href="{% url 'news:epaper' %}"><i class="fas fa-chevron-right fa-xs me-1" style="color:var(--primary-color);"></i>ePaper</a></li>
+                    </ul>
                 </div>
+                <!-- Categories -->
+                <div class="col-lg-3 col-md-6">
+                    <h6 style="text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #333;padding-bottom:8px;margin-bottom:12px;">Categories</h6>
+                    <ul class="list-unstyled" style="font-size:0.87rem;line-height:2;">
+                        {% for code, name in categories %}
+                        {% if code != 'BUDGET' and code != 'WORLD' %}
+                        <li><a href="{% url 'news:category' code %}"><i class="fas fa-chevron-right fa-xs me-1" style="color:var(--primary-color);"></i>{{ name }}</a></li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                <!-- About / Contact -->
+                <div class="col-lg-3 col-md-6">
+                    <h6 style="text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #333;padding-bottom:8px;margin-bottom:12px;">About</h6>
+                    <ul class="list-unstyled" style="font-size:0.87rem;line-height:2;">
+                        <li><i class="far fa-newspaper me-2" style="color:var(--primary-color);"></i>Est. 2025 — Digital First</li>
+                        <li><i class="fas fa-globe-asia me-2" style="color:var(--primary-color);"></i>Covering 60+ countries</li>
+                        <li><i class="fas fa-sync-alt me-2" style="color:var(--primary-color);"></i>Updated every 5 minutes</li>
+                        <li><i class="fas fa-shield-alt me-2" style="color:var(--primary-color);"></i>Verified & credible sources</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="footer-divider">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center" style="font-size:0.82rem;color:#666;">
+                <span>&copy; 2026 Times of Vedant. All rights reserved.</span>
+                <span class="mt-2 mt-md-0">Made with <i class="fas fa-heart" style="color:var(--primary-color);"></i> for India</span>
             </div>
         </div>
     </footer>
@@ -849,6 +969,20 @@
                 });
             }).observe(document.body, { childList: true, subtree: true });
         }
+    })();
+    </script>
+
+    <!-- Scroll-to-top button -->
+    <button id="scrollTopBtn" title="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+    <script>
+    (function(){
+        var btn = document.getElementById('scrollTopBtn');
+        window.addEventListener('scroll', function(){
+            if(window.scrollY > 320){ btn.classList.add('visible'); }
+            else { btn.classList.remove('visible'); }
+        }, {passive:true});
     })();
     </script>
 </body>

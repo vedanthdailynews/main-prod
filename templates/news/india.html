@@ -3,92 +3,86 @@
 {% block title %}India News - Times of Vedant{% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <h1 class="display-5">
-        <i class="fas fa-flag text-danger"></i> India News
-    </h1>
-    <p class="lead text-muted">Latest news and updates from across India</p>
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle"></i> Showing {{ total_articles }} articles from Indian states and regions
-    </div>
-</div>
+<div class="container py-4">
 
-<!-- Quick State Links -->
-<div class="mb-4">
-    <h5>Browse by State:</h5>
+  <!-- Page Header -->
+  <div class="d-flex align-items-center mb-3 pb-3" style="border-bottom:3px double #c8102e;">
+    <div style="width:5px;height:36px;background:linear-gradient(#FF9933 33%,#fff 33%,#fff 66%,#138808 66%);border-radius:4px;margin-right:14px;flex-shrink:0;"></div>
+    <div>
+      <h1 style="font-family:'Merriweather',serif;font-size:1.7rem;font-weight:900;margin:0;color:#1a1a1a;">🇮🇳 India News</h1>
+      <p class="mb-0" style="font-size:.85rem;color:#888;margin-top:2px;">Latest news and updates from across India &mdash; {{ total_articles }} articles</p>
+    </div>
+  </div>
+
+  <!-- State filter pills -->
+  <div class="mb-4">
+    <p class="mb-2" style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;">Browse by State</p>
     <div class="d-flex flex-wrap gap-2">
-        {% for code, name in indian_states %}
-        <a href="{% url 'news:state' code %}" class="btn btn-sm btn-outline-primary">{{ name }}</a>
-        {% endfor %}
+      {% for code, name in indian_states %}
+      <a href="{% url 'news:state' code %}" class="btn btn-sm"
+         style="border-radius:20px;border:1px solid #ddd;background:#fff;color:#444;font-size:.77rem;padding:4px 12px;transition:all 0.2s;font-weight:600;"
+         onmouseover="this.style.background='#c8102e';this.style.color='#fff';this.style.borderColor='#c8102e';"
+         onmouseout="this.style.background='#fff';this.style.color='#444';this.style.borderColor='#ddd';">{{ name }}</a>
+      {% endfor %}
     </div>
-</div>
+  </div>
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+  <!-- Articles Grid -->
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for article in articles %}
     <div class="col d-flex">
-        <div class="card news-card w-100 d-flex flex-column">
-            {% if article.image_url %}
-            <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}" style="height: 200px; object-fit: cover;">
-            {% else %}
-            <div style="height: 200px; background: linear-gradient(135deg, rgba(255, 153, 51, 0.3), rgba(19, 136, 8, 0.2)); display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-flag" style="font-size: 3rem; color: rgba(255, 153, 51, 0.5);"></i>
-            </div>
-            {% endif %}
-            <div class="card-body d-flex flex-column">
-                <div class="mb-2">
-                    {% if article.indian_state %}
-                    <span class="badge bg-success">{{ article.get_indian_state_display }}</span>
-                    {% endif %}
-                    <span class="badge bg-info">{{ article.get_category_display }}</span>
-                    {% if article.sentiment %}
-                    <span class="sentiment-{{ article.sentiment }}">
-                        <i class="fas fa-smile"></i> {{ article.sentiment }}
-                    </span>
-                    {% endif %}
-                </div>
-                <h5 class="card-title" style="min-height: 60px;">{{ article.title|truncatewords:12 }}</h5>
-                <p class="card-text text-muted small flex-grow-1" style="min-height: 50px;">{{ article.description|truncatewords:15 }}</p>
-                <div class="mt-auto">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <small class="text-muted">{{ article.source|truncatewords:3 }}</small>
-                        <small class="text-muted">{{ article.published_at|timesince }} ago</small>
-                    </div>
-                    <a href="{% url 'news:detail' article.pk %}" class="btn btn-sm btn-outline-primary w-100">Read More</a>
-                </div>
-            </div>
+      <div class="news-card w-100 d-flex flex-column" style="border-radius:12px;border-top:3px solid #FF9933;">
+        {% if article.image_url %}
+        <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}"
+             style="height:190px;object-fit:cover;border-radius:12px 12px 0 0;">
+        {% else %}
+        <div style="height:190px;background:linear-gradient(135deg,rgba(255,153,51,.25),rgba(19,136,8,.15));display:flex;align-items:center;justify-content:center;border-radius:12px 12px 0 0;">
+          <i class="fas fa-flag" style="font-size:2.5rem;color:rgba(255,153,51,.5);"></i>
         </div>
+        {% endif %}
+        <div class="card-body d-flex flex-column p-3">
+          <div class="mb-2 d-flex flex-wrap gap-1">
+            {% if article.indian_state %}<span class="badge" style="background:#138808;color:#fff;border:none;border-radius:20px;font-size:.68rem;">{{ article.get_indian_state_display }}</span>{% endif %}
+            <span class="badge bg-info text-dark" style="border:none;border-radius:20px;font-size:.68rem;">{{ article.get_category_display }}</span>
+            {% if article.sentiment == 'positive' %}<span class="badge bg-success" style="border:none;border-radius:20px;font-size:.65rem;"><i class="fas fa-smile"></i></span>
+            {% elif article.sentiment == 'negative' %}<span class="badge bg-danger" style="border:none;border-radius:20px;font-size:.65rem;"><i class="fas fa-frown"></i></span>{% endif %}
+          </div>
+          <h6 style="font-family:'Merriweather',serif;font-size:.88rem;font-weight:700;line-height:1.4;flex-grow:1;">
+            <a href="{% url 'news:detail' article.pk %}" class="text-decoration-none text-dark">{{ article.title|truncatewords:14 }}</a>
+          </h6>
+          <p class="text-muted small mb-2" style="font-size:.78rem;line-height:1.4;">{{ article.description|truncatewords:15 }}</p>
+          <div class="d-flex justify-content-between align-items-center mt-auto pt-2" style="border-top:1px solid #f0f0f0;">
+            <small class="text-muted" style="font-size:.73rem;"><i class="far fa-clock me-1"></i>{{ article.published_at|timesince }} ago</small>
+            <a href="{% url 'news:detail' article.pk %}" class="btn-read-more" style="font-size:.73rem;padding:4px 14px;">Read &rarr;</a>
+          </div>
+        </div>
+      </div>
     </div>
     {% empty %}
     <div class="col-12">
-        <div class="alert alert-warning">
-            <h5><i class="fas fa-exclamation-triangle"></i> No Indian News Available Yet</h5>
-            <p>We're working on bringing you more regional news from across India. Please check back soon!</p>
-            <p>In the meantime, you can browse news by state using the links above.</p>
-        </div>
+      <div class="alert" style="background:#fff8f0;border:1px solid #FF9933;border-radius:10px;">
+        <h6 class="mb-1"><i class="fas fa-exclamation-triangle" style="color:#FF9933;"></i> No Indian news articles yet</h6>
+        <p class="mb-0 small">We're working on bringing you more regional news from India. Check back soon!</p>
+      </div>
     </div>
     {% endfor %}
-</div>
+  </div>
 
-<!-- Pagination -->
-{% if is_paginated %}
-<nav aria-label="Page navigation" class="mt-4">
+  <!-- Pagination -->
+  {% if is_paginated %}
+  <nav class="mt-4">
     <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-        <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-        </li>
-        {% endif %}
-        
-        <li class="page-item active">
-            <span class="page-link">{{ page_obj.number }}</span>
-        </li>
-        
-        {% if page_obj.has_next %}
-        <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-        </li>
-        {% endif %}
+      {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+      {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+      {% endif %}
     </ul>
-</nav>
-{% endif %}
+  </nav>
+  {% endif %}
+
+</div>
 {% endblock %}
+

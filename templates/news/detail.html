@@ -1,104 +1,212 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ article.title }} - Vedant Daily News{% endblock %}
+{% block title %}{{ article.title }} - Times of Vedant{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Reading progress bar */
+#readingProgress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #c8102e, #d4af37);
+    width: 0%;
+    z-index: 9999;
+    transition: width 0.1s linear;
+}
+.article-container {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    padding: 36px 44px 44px;
+    margin-bottom: 30px;
+}
+@media (max-width: 576px) {
+    .article-container { padding: 20px 16px 28px; }
+}
+.article-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 0;
+    border-top: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+    margin: 14px 0 0;
+    font-size: .83rem;
+    color: #666;
+}
+.article-meta-row i { color: #c8102e; }
+.article-source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8f8f8;
+    border: 1px solid #e8e8e8;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #333;
+}
+.ai-summary-box {
+    background: linear-gradient(135deg, #fff8f8, #fff);
+    border: 1px solid #f5c6cf;
+    border-left: 4px solid #c8102e;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+}
+.article-body {
+    font-family: 'PT Serif', Georgia, serif;
+    font-size: 1.08rem;
+    line-height: 1.85;
+    color: #2a2a2a;
+}
+.article-body p { margin-bottom: 1.3em; }
+.tag-pill {
+    display: inline-block;
+    background: #f0f0f0;
+    color: #555;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: .78rem;
+    font-weight: 600;
+    margin: 2px 4px 2px 0;
+    text-decoration: none;
+    border: 1px solid #e0e0e0;
+    transition: background 0.2s, color 0.2s;
+}
+.tag-pill:hover { background: #c8102e; color: #fff; border-color: #c8102e; }
+.source-card {
+    border-radius: 12px;
+    border: 1px solid #e8e8e8;
+    text-align: center;
+    padding: 24px;
+    background: #fafafa;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<article class="row">
-    <div class="col-lg-8 mx-auto">
-        <!-- Article Header -->
-        <div class="mb-4">
-            <h1 class="display-5 fw-bold">{{ article.title }}</h1>
-            
-            <div class="d-flex justify-content-between align-items-center my-3">
-                <div>
-                    <span class="badge bg-secondary">{{ article.get_continent_display }}</span>
-                    <span class="badge bg-info">{{ article.get_category_display }}</span>
-                    {% if article.is_featured %}
-                    <span class="featured-badge">FEATURED</span>
+<div id="readingProgress"></div>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb" style="font-size:.82rem;background:transparent;padding:0;">
+                    <li class="breadcrumb-item"><a href="{% url 'news:home' %}" style="color:#c8102e;">Home</a></li>
+                    {% if article.category %}<li class="breadcrumb-item"><a href="{% url 'news:category' article.category %}" style="color:#c8102e;">{{ article.get_category_display }}</a></li>{% endif %}
+                    <li class="breadcrumb-item active text-muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">{{ article.title|truncatewords:6 }}</li>
+                </ol>
+            </nav>
+
+            <div class="article-container">
+
+                <!-- Category / Featured badges -->
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    {% if article.is_indian_news %}<span class="badge" style="background:#FF9933;color:#fff;border:none;">🇮🇳 India</span>{% endif %}
+                    <span class="badge bg-secondary" style="border:none;">{{ article.get_continent_display }}</span>
+                    <span class="badge bg-info text-dark" style="border:none;">{{ article.get_category_display }}</span>
+                    {% if article.is_featured %}<span class="featured-badge">Featured</span>{% endif %}
+                    {% if article.credibility_score >= 80 %}<span class="badge bg-success" style="border:none;"><i class="fas fa-check-circle"></i> Verified</span>{% endif %}
+                    {% if article.sentiment == 'positive' %}<span class="badge bg-success" style="border:none;"><i class="fas fa-smile"></i> Positive</span>
+                    {% elif article.sentiment == 'negative' %}<span class="badge bg-danger" style="border:none;"><i class="fas fa-frown"></i> Negative</span>{% endif %}
+                </div>
+
+                <!-- Title -->
+                <h1 style="font-family:'Merriweather',serif;font-size:1.85rem;font-weight:900;line-height:1.35;color:#1a1a1a;margin-bottom:12px;">{{ article.title }}</h1>
+
+                <!-- Meta row -->
+                <div class="article-meta-row">
+                    <span class="article-source-badge"><i class="far fa-newspaper"></i> {{ article.source }}{% if article.author %} &mdash; {{ article.author }}{% endif %}</span>
+                    <span><i class="far fa-clock"></i> {{ article.published_at|date:"d M Y, g:i A" }}</span>
+                    <span><i class="far fa-eye"></i> {{ article.view_count }} views</span>
+                    <span><i class="far fa-clock"></i> {{ article.published_at|timesince }} ago</span>
+                </div>
+            </div>
+
+            <!-- Article Image -->
+            <div class="mb-4" style="border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+                <img src="{% if article.image_url %}{{ article.image_url }}{% else %}https://picsum.photos/seed/{{ article.title|slugify|slice:':16' }}/1200/600{% endif %}"
+                     alt="{{ article.title }}"
+                     class="img-fluid article-img"
+                     style="width:100%;max-height:480px;object-fit:cover;display:block;"
+                     onerror="if(!this.dataset.errored){this.dataset.errored='1';var h=0,s=(this.alt||'news');for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}this.src='https://picsum.photos/seed/'+Math.abs(h).toString(16).substring(0,12)+'/1200/600';}">
+            </div>
+
+            <div class="article-container">
+
+                <!-- AI Summary -->
+                {% if article.summary %}
+                <div class="ai-summary-box mb-4">
+                    <h6 class="mb-2" style="font-weight:700;color:#c8102e;"><i class="fas fa-robot me-2"></i>AI Summary</h6>
+                    <p class="mb-0" style="font-size:.92rem;line-height:1.7;color:#444;">{{ article.summary }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Article Content -->
+                <div class="article-body">
+                    {% if article.description %}
+                    <p class="lead" style="font-size:1.12rem;font-weight:400;color:#333;border-bottom:1px solid #f0f0f0;padding-bottom:16px;margin-bottom:20px;">{{ article.description }}</p>
+                    {% endif %}
+                    {% if article.content %}
+                    <div>{{ article.content|linebreaks }}</div>
                     {% endif %}
                 </div>
-                {% if article.sentiment %}
-                <span class="sentiment-{{ article.sentiment }} fw-bold">
-                    <i class="fas fa-circle"></i> {{ article.sentiment|upper }}
-                </span>
+
+                <!-- Tags -->
+                {% if article.tags %}
+                <div class="mt-4 pt-3" style="border-top:1px solid #f0f0f0;">
+                    <span style="font-size:.82rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;"><i class="fas fa-tags me-1"></i>Tags</span>
+                    <div class="mt-2">
+                        {% for tag in article.tags %}
+                        <span class="tag-pill">#{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
                 {% endif %}
             </div>
-            
-            <div class="text-muted border-bottom pb-3">
-                <p class="mb-1">
-                    <i class="far fa-newspaper"></i> <strong>{{ article.source }}</strong>
-                    {% if article.author %} by {{ article.author }}{% endif %}
-                </p>
-                <p class="mb-1">
-                    <i class="far fa-clock"></i> Published {{ article.published_at|date:"F d, Y \a\t g:i A" }}
-                    ({{ article.published_at|timesince }} ago)
-                </p>
-                <p class="mb-0">
-                    <i class="far fa-eye"></i> {{ article.view_count }} views
-                </p>
-            </div>
-        </div>
-        
-        <!-- Article Image -->
-        <div class="mb-4">
-            <img src="{% if article.image_url %}{{ article.image_url }}{% else %}https://picsum.photos/seed/{{ article.title|slugify|slice:':16' }}/1200/600{% endif %}"
-                 alt="{{ article.title }}"
-                 class="img-fluid rounded article-img"
-                 onerror="if(!this.dataset.errored){this.dataset.errored='1';var h=0,s=(this.alt||'news');for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}this.src='https://picsum.photos/seed/'+Math.abs(h).toString(16).substring(0,12)+'/1200/600';}"
-            >
-        </div>
-        
-        <!-- AI Summary -->
-        {% if article.summary %}
-        <div class="alert alert-light border-start border-4 border-primary mb-4">
-            <h5 class="alert-heading">
-                <i class="fas fa-robot"></i> AI Summary
-            </h5>
-            <p class="mb-0">{{ article.summary }}</p>
-        </div>
-        {% endif %}
-        
-        <!-- Article Content -->
-        <div class="article-content mb-4">
-            {% if article.description %}
-            <p class="lead">{{ article.description }}</p>
-            {% endif %}
-            
-            {% if article.content %}
-            <div>{{ article.content|linebreaks }}</div>
-            {% endif %}
-        </div>
-        
-        <!-- Tags -->
-        {% if article.tags %}
-        <div class="mb-4">
-            <h6><i class="fas fa-tags"></i> Tags:</h6>
-            {% for tag in article.tags %}
-            <span class="badge bg-light text-dark me-2">{{ tag }}</span>
-            {% endfor %}
-        </div>
-        {% endif %}
-        
-        <!-- Read Original -->
-        <div class="card bg-light mb-4">
-            <div class="card-body text-center">
-                <h5 class="card-title">Read the Original Article</h5>
-                <p class="card-text">This is a summary. Visit the source for the full story.</p>
-                <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-                    <i class="fas fa-external-link-alt"></i> Go to {{ article.source }}
+
+            <!-- Source card -->
+            <div class="source-card mb-4">
+                <p class="text-muted mb-2" style="font-size:.85rem;">This is a summary. Visit the original source for the full story.</p>
+                <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+                   class="btn" style="background:#c8102e;color:#fff;border-radius:20px;padding:8px 24px;font-weight:600;font-size:.88rem;">
+                    <i class="fas fa-external-link-alt me-2"></i>Read on {{ article.source }}
                 </a>
             </div>
-        </div>
-        
-        <!-- Navigation -->
-        <div class="d-flex justify-content-between">
-            <a href="{% url 'news:home' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Home
-            </a>
-            <a href="{% url 'news:continent' article.continent %}" class="btn btn-outline-secondary">
-                More from {{ article.get_continent_display }} <i class="fas fa-arrow-right"></i>
-            </a>
+
+            <!-- Navigation -->
+            <div class="d-flex justify-content-between gap-2">
+                <a href="{% url 'news:home' %}" class="btn btn-outline-secondary" style="border-radius:20px;font-size:.85rem;">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Home
+                </a>
+                <a href="{% url 'news:continent' article.continent %}" class="btn" style="background:#1a1a1a;color:#fff;border-radius:20px;font-size:.85rem;">
+                    More from {{ article.get_continent_display }} <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+
         </div>
     </div>
-</article>
+</div>
+
+{% block extra_js %}
+<script>
+(function(){
+    var bar = document.getElementById('readingProgress');
+    window.addEventListener('scroll', function(){
+        var el = document.documentElement;
+        var scrolled = el.scrollTop || document.body.scrollTop;
+        var total = el.scrollHeight - el.clientHeight;
+        bar.style.width = (total > 0 ? (scrolled / total * 100) : 0) + '%';
+    }, {passive:true});
+})();
+</script>
 {% endblock %}
+{% endblock %}
+
