@@ -207,7 +207,8 @@ class TranslationService:
             if content_needs and content:
                 c_lang = content_lang if content_lang not in ('en', '') else effective_lang
                 new_content = cls._translate_long_text(content, source_lang=c_lang)
-                if new_content:
+                # Only save if translation actually changed the text
+                if new_content and new_content.strip() != content.strip():
                     article.content = new_content
                     update_fields.append('content')
 

@@ -239,9 +239,32 @@ class NewsDetailView(DetailView):
                     if text and len(text) > 200:
                         article.content = text
                         article.save(update_fields=['view_count', 'content'])
+                        # Translate scraped content if non-English
+                        try:
+                            from news.translation_service import TranslationService, is_non_english
+                            if is_non_english(text[:300]):
+                                TranslationService.translate_article(article)
+                                article.refresh_from_db()
+                        except Exception:
+                            pass
                         return article
             except Exception as e:
                 logger.warning(f"trafilatura failed for article {article.pk}: {e}")
+        # ──────────────────────────────────────────────────────────────────
+
+        # ── If content is still non-English, try translation again ────────
+        try:
+            from news.translation_service import TranslationService, is_non_english
+            if article.content and is_non_english(article.content[:300]):
+                ok = TranslationService.translate_article(article)
+                if ok:
+                    article.refresh_from_db()
+                # If translation still failed, wipe content so template falls
+                # back to the already-translated description
+                if article.content and is_non_english(article.content[:300]):
+                    article.content = None
+        except Exception:
+            pass
         # ──────────────────────────────────────────────────────────────────
 
         article.save(update_fields=['view_count'])
