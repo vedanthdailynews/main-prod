@@ -217,39 +217,72 @@ class NewsDetailView(DetailView):
     template_name = 'news/detail.html'
     context_object_name = 'article'
 
+    @staticmethod
+    def _resolve_real_url(url: str) -> str:
+        """
+        Follow a Google News redirect URL to get the real article URL.
+        Returns the resolved URL, or the original if resolution fails.
+        """
+        if not url or 'news.google.com' not in url:
+            return url
+        try:
+            import requests as req
+            headers = {
+                'User-Agent': (
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                    'AppleWebKit/537.36 (KHTML, like Gecko) '
+                    'Chrome/120.0.0.0 Safari/537.36'
+                )
+            }
+            resp = req.get(url, headers=headers, timeout=10, allow_redirects=True)
+            final = resp.url
+            # If redirect actually took us away from google.com, return real URL
+            if 'news.google.com' not in final and final.startswith('http'):
+                return final
+        except Exception:
+            pass
+        return url
+
     def get_object(self):
         article = super().get_object()
         # Increment view count
         article.view_count += 1
 
         # ── Fetch full article content on first visit ──────────────────────
-        # Only attempt for non-Google-News URLs (RSS redirect URLs can't be scraped)
-        is_google_news_redirect = article.url and 'news.google.com' in article.url
-        if not article.content and article.url and not is_google_news_redirect:
-            try:
-                import trafilatura
-                downloaded = trafilatura.fetch_url(article.url)
-                if downloaded:
-                    text = trafilatura.extract(
-                        downloaded,
-                        include_comments=False,
-                        include_tables=False,
-                        no_fallback=False,
-                    )
-                    if text and len(text) > 200:
-                        article.content = text
-                        article.save(update_fields=['view_count', 'content'])
-                        # Translate scraped content if non-English
-                        try:
-                            from news.translation_service import TranslationService, is_non_english
-                            if is_non_english(text[:300]):
-                                TranslationService.translate_article(article)
-                                article.refresh_from_db()
-                        except Exception:
-                            pass
-                        return article
-            except Exception as e:
-                logger.warning(f"trafilatura failed for article {article.pk}: {e}")
+        if not article.content and article.url:
+            scrape_url = article.url
+            # Resolve Google News redirect → real article URL
+            if 'news.google.com' in scrape_url:
+                scrape_url = self._resolve_real_url(scrape_url)
+            # Only scrape if we have a real (non-Google) URL
+            if scrape_url and 'news.google.com' not in scrape_url:
+                try:
+                    import trafilatura
+                    downloaded = trafilatura.fetch_url(scrape_url)
+                    if downloaded:
+                        text = trafilatura.extract(
+                            downloaded,
+                            include_comments=False,
+                            include_tables=False,
+                            no_fallback=False,
+                        )
+                        if text and len(text) > 200:
+                            article.content = text
+                            # Store the resolved real URL so future visits skip redirect
+                            if scrape_url != article.url:
+                                article.url = scrape_url
+                            article.save(update_fields=['view_count', 'content', 'url'])
+                            # Translate scraped content if non-English
+                            try:
+                                from news.translation_service import TranslationService, is_non_english
+                                if is_non_english(text[:300]):
+                                    TranslationService.translate_article(article)
+                                    article.refresh_from_db()
+                            except Exception:
+                                pass
+                            return article
+                except Exception as e:
+                    logger.warning(f"trafilatura failed for article {article.pk}: {e}")
         # ──────────────────────────────────────────────────────────────────
 
         # ── If content is still non-English, try translation again ────────
