@@ -182,13 +182,49 @@ class NewsDetailView(DetailView):
     model = NewsArticle
     template_name = 'news/detail.html'
     context_object_name = 'article'
-    
+
     def get_object(self):
         article = super().get_object()
         # Increment view count
         article.view_count += 1
+
+        # ── Fetch full article content on first visit ──────────────────────
+        # Only attempt for non-Google-News URLs (RSS redirect URLs can't be scraped)
+        is_google_news_redirect = article.url and 'news.google.com' in article.url
+        if not article.content and article.url and not is_google_news_redirect:
+            try:
+                import trafilatura
+                downloaded = trafilatura.fetch_url(article.url)
+                if downloaded:
+                    text = trafilatura.extract(
+                        downloaded,
+                        include_comments=False,
+                        include_tables=False,
+                        no_fallback=False,
+                    )
+                    if text and len(text) > 200:
+                        article.content = text
+                        article.save(update_fields=['view_count', 'content'])
+                        return article
+            except Exception as e:
+                logger.warning(f"trafilatura failed for article {article.pk}: {e}")
+        # ──────────────────────────────────────────────────────────────────
+
         article.save(update_fields=['view_count'])
         return article
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        article = context['article']
+        # Convert RSS redirect URL → browser-friendly Google News web URL
+        url = article.url or ''
+        if 'news.google.com/rss/articles/' in url:
+            # Strip query string params, replace /rss/articles/ with /articles/
+            clean = url.split('?')[0].replace('/rss/articles/', '/articles/')
+            context['article_source_url'] = clean
+        else:
+            context['article_source_url'] = url
+        return context
 
 
 class BudgetNewsView(ListView):

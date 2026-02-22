@@ -17,4 +17,4 @@ yfinance>=0.2.40
 whitenoise>=6.0.0
 dj-database-url>=2.0.0
 apscheduler>=3.10.0
-django-filter>=23.0.0
+django-filter>=23.0.0trafilatura>=1.6.0
