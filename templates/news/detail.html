@@ -160,18 +160,7 @@
                     {% endfor %}
                     {% elif article.description %}
                     {# ── Fallback: RSS description snippet ── #}
-                    <p class="lead" style="font-size:1.1rem;font-weight:400;color:#333;border-bottom:1px solid #f0f0f0;padding-bottom:16px;margin-bottom:20px;">{{ article.description }}</p>
-                    <div class="d-flex align-items-start gap-3 p-3 rounded" style="background:#fff8f0;border:1px solid #ffe0b2;border-left:4px solid #FF9933;">
-                        <i class="fas fa-info-circle mt-1" style="color:#FF9933;font-size:1.1rem;flex-shrink:0;"></i>
-                        <div>
-                            <p class="mb-1" style="font-size:.9rem;font-weight:600;color:#555;">Full article could not be loaded automatically.</p>
-                            <p class="mb-0" style="font-size:.85rem;color:#777;">This may be due to a paywall or bot protection on the source site. Read the full story directly:</p>
-                            <a href="{{ article_source_url }}" target="_blank" rel="noopener noreferrer"
-                               class="btn btn-sm mt-2" style="background:#FF9933;color:#fff;border-radius:20px;font-size:.8rem;font-weight:600;">
-                                <i class="fas fa-external-link-alt me-1"></i>Open on {{ article.source }}
-                            </a>
-                        </div>
-                    </div>
+                    <p class="lead" style="font-size:1.1rem;font-weight:400;color:#333;">{{ article.description }}</p>
                     {% else %}
                     <p class="text-muted">No article content available.</p>
                     {% endif %}
@@ -188,15 +177,6 @@
                     </div>
                 </div>
                 {% endif %}
-            </div>
-
-            <!-- Source card -->
-            <div class="source-card mb-4">
-                <p class="text-muted mb-2" style="font-size:.85rem;">This is a summary. Visit the original source for the full story.</p>
-                <a href="{{ article_source_url }}" target="_blank" rel="noopener noreferrer"
-                   class="btn" style="background:#c8102e;color:#fff;border-radius:20px;padding:8px 24px;font-weight:600;font-size:.88rem;">
-                    <i class="fas fa-external-link-alt me-2"></i>Read on {{ article.source }}
-                </a>
             </div>
 
             <!-- Navigation -->
