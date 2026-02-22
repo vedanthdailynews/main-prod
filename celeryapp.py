@@ -19,9 +19,22 @@ app.autodiscover_tasks()
 
 # Configure periodic tasks
 app.conf.beat_schedule = {
-    'fetch-news-every-5-minutes': {
+    # India-first: fetch from The Hindu, TOI, NDTV etc. every 2 minutes
+    'fetch-india-news-every-2-minutes': {
+        'task': 'news.tasks.fetch_india_news',
+        'schedule': 120.0,
+    },
+    # Full global fetch every 5 minutes (includes India + international)
+    'fetch-all-news-every-5-minutes': {
         'task': 'news.tasks.fetch_all_news',
-        'schedule': 300.0,  # 300 seconds = 5 minutes
+        'schedule': 300.0,
+    },
+    # Translate non-English articles every 60 seconds (max 300 articles per run)
+    # Uses 20 parallel threads — almost-real-time translation
+    'translate-articles-every-minute': {
+        'task': 'news.tasks.translate_pending_articles',
+        'schedule': 60.0,
+        'kwargs': {'limit': 300},
     },
 }
 

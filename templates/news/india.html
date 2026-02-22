@@ -1,88 +1,188 @@
 {% extends 'base.html' %}
 
-{% block title %}India News - Times of Vedant{% endblock %}
+{% block title %}{% if state_name %}{{ state_name }} News{% else %}India News{% endif %} - Times of Vedant{% endblock %}
 
 {% block content %}
 <div class="container py-4">
 
   <!-- Page Header -->
   <div class="d-flex align-items-center mb-3 pb-3" style="border-bottom:3px double #c8102e;">
-    <div style="width:5px;height:36px;background:linear-gradient(#FF9933 33%,#fff 33%,#fff 66%,#138808 66%);border-radius:4px;margin-right:14px;flex-shrink:0;"></div>
-    <div>
-      <h1 style="font-family:'Merriweather',serif;font-size:1.7rem;font-weight:900;margin:0;color:#1a1a1a;">🇮🇳 India News</h1>
-      <p class="mb-0" style="font-size:.85rem;color:#888;margin-top:2px;">Latest news and updates from across India &mdash; {{ total_articles }} articles</p>
+    <div style="width:5px;height:40px;background:linear-gradient(#FF9933 33%,#fff 33%,#fff 66%,#138808 66%);border-radius:4px;margin-right:14px;flex-shrink:0;"></div>
+    <div class="flex-grow-1">
+      <h1 style="font-family:'Merriweather',serif;font-size:1.7rem;font-weight:900;margin:0;color:#1a1a1a;">
+        🇮🇳 {% if state_name %}{{ state_name }}{% else %}India{% endif %} News
+      </h1>
+      <p class="mb-0" style="font-size:.83rem;color:#888;margin-top:2px;">
+        {{ total_articles }} articles from The Hindu, Times of India, NDTV &amp; more
+        {% if state_name %}&mdash; filtered for <strong>{{ state_name }}</strong>{% endif %}
+      </p>
     </div>
+    {% if selected_state %}
+    <a href="{% url 'news:india' %}" class="btn btn-sm" style="background:#c8102e;color:#fff;border-radius:20px;font-size:.78rem;font-weight:600;">
+      <i class="fas fa-times me-1"></i>Clear Filter
+    </a>
+    {% endif %}
   </div>
 
   <!-- State filter pills -->
   <div class="mb-4">
-    <p class="mb-2" style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;">Browse by State</p>
-    <div class="d-flex flex-wrap gap-2">
+    <p class="mb-2" style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;">
+      <i class="fas fa-map-marked-alt me-1" style="color:#FF9933;"></i>Browse by State
+    </p>
+    <div class="d-flex flex-wrap gap-1">
+      <a href="{% url 'news:india' %}"
+         class="btn btn-sm"
+         style="border-radius:20px;font-size:.75rem;padding:3px 12px;font-weight:600;{% if not selected_state %}background:#c8102e;color:#fff;border-color:#c8102e;{% else %}background:#fff;color:#444;border:1px solid #ddd;{% endif %}">
+        All India
+      </a>
       {% for code, name in indian_states %}
-      <a href="{% url 'news:state' code %}" class="btn btn-sm"
-         style="border-radius:20px;border:1px solid #ddd;background:#fff;color:#444;font-size:.77rem;padding:4px 12px;transition:all 0.2s;font-weight:600;"
-         onmouseover="this.style.background='#c8102e';this.style.color='#fff';this.style.borderColor='#c8102e';"
-         onmouseout="this.style.background='#fff';this.style.color='#444';this.style.borderColor='#ddd';">{{ name }}</a>
+      <a href="{% url 'news:india' %}?state={{ code }}"
+         class="btn btn-sm"
+         style="border-radius:20px;font-size:.75rem;padding:3px 12px;font-weight:600;transition:all .15s;{% if selected_state == code %}background:#138808;color:#fff;border-color:#138808;{% else %}background:#fff;color:#444;border:1px solid #ddd;{% endif %}"
+         onmouseover="if('{{ selected_state }}'!=='{{ code }}'){this.style.background='#FF9933';this.style.color='#fff';this.style.borderColor='#FF9933';}"
+         onmouseout="if('{{ selected_state }}'!=='{{ code }}'){this.style.background='#fff';this.style.color='#444';this.style.borderColor='#ddd';}">
+        {{ name }}
+      </a>
       {% endfor %}
     </div>
   </div>
 
-  <!-- Articles Grid -->
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    {% for article in articles %}
-    <div class="col d-flex">
-      <div class="news-card w-100 d-flex flex-column" style="border-radius:12px;border-top:3px solid #FF9933;">
-        {% if article.image_url %}
-        <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}"
-             style="height:190px;object-fit:cover;border-radius:12px 12px 0 0;">
-        {% else %}
-        <div style="height:190px;background:linear-gradient(135deg,rgba(255,153,51,.25),rgba(19,136,8,.15));display:flex;align-items:center;justify-content:center;border-radius:12px 12px 0 0;">
-          <i class="fas fa-flag" style="font-size:2.5rem;color:rgba(255,153,51,.5);"></i>
+  <div class="row g-4">
+
+    <!-- Main Article Grid -->
+    <div class="col-lg-8">
+      <div class="row g-3">
+        {% for article in articles %}
+        <div class="col-md-6">
+          <div class="news-card h-100 d-flex flex-column" style="border-radius:12px;border-top:3px solid {% if article.indian_state == 'DL' %}#FF9933{% elif article.indian_state == 'MH' %}#c8102e{% elif article.indian_state == 'KA' %}#cc0000{% elif article.indian_state == 'TN' %}#000080{% elif article.indian_state == 'KL' %}#138808{% else %}#c8102e{% endif %};">
+            {% if article.image_url %}
+            <img src="{{ article.image_url }}" alt="{{ article.title }}"
+                 style="height:175px;object-fit:cover;border-radius:12px 12px 0 0;width:100%;"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <div style="height:175px;background:linear-gradient(135deg,rgba(255,153,51,.2),rgba(19,136,8,.1));display:none;align-items:center;justify-content:center;border-radius:12px 12px 0 0;">
+              <i class="fas fa-flag" style="font-size:2rem;color:rgba(255,153,51,.5);"></i>
+            </div>
+            {% else %}
+            <div style="height:175px;background:linear-gradient(135deg,rgba(255,153,51,.2),rgba(19,136,8,.1));display:flex;align-items:center;justify-content:center;border-radius:12px 12px 0 0;">
+              <i class="fas fa-flag" style="font-size:2rem;color:rgba(255,153,51,.5);"></i>
+            </div>
+            {% endif %}
+            <div class="p-3 d-flex flex-column flex-grow-1">
+              <!-- Badges -->
+              <div class="d-flex flex-wrap gap-1 mb-2">
+                {% if article.indian_state %}
+                <span class="badge" style="background:#138808;color:#fff;border-radius:20px;font-size:.65rem;">
+                  <i class="fas fa-map-marker-alt me-1"></i>{{ article.get_indian_state_display }}
+                </span>
+                {% endif %}
+                <span class="badge" style="background:#f0f4ff;color:#444;border-radius:20px;font-size:.65rem;border:1px solid #dce4ff;">
+                  {{ article.get_category_display }}
+                </span>
+                {% if article.sentiment == 'positive' %}
+                <span class="badge bg-success" style="border-radius:20px;font-size:.62rem;"><i class="fas fa-smile"></i></span>
+                {% elif article.sentiment == 'negative' %}
+                <span class="badge bg-danger" style="border-radius:20px;font-size:.62rem;"><i class="fas fa-frown"></i></span>
+                {% endif %}
+              </div>
+              <!-- Title -->
+              <h6 class="flex-grow-1" style="font-family:'Merriweather',serif;font-size:.87rem;font-weight:700;line-height:1.45;margin-bottom:6px;">
+                <a href="{% url 'news:detail' article.pk %}" class="text-decoration-none text-dark">{{ article.title|truncatewords:15 }}</a>
+              </h6>
+              <!-- Description -->
+              {% if article.description %}
+              <p class="text-muted mb-2" style="font-size:.76rem;line-height:1.4;">{{ article.description|truncatewords:14 }}</p>
+              {% endif %}
+              <!-- Footer row -->
+              <div class="d-flex justify-content-between align-items-center mt-auto pt-2" style="border-top:1px solid #f5f5f5;">
+                <div>
+                  <span style="font-size:.7rem;font-weight:700;color:#c8102e;">{{ article.source }}</span>
+                  <span class="text-muted" style="font-size:.68rem;"> &middot; {{ article.published_at|timesince }} ago</span>
+                </div>
+                <a href="{% url 'news:detail' article.pk %}" class="btn-read-more" style="font-size:.7rem;padding:3px 12px;">Read &rarr;</a>
+              </div>
+            </div>
+          </div>
         </div>
-        {% endif %}
-        <div class="card-body d-flex flex-column p-3">
-          <div class="mb-2 d-flex flex-wrap gap-1">
-            {% if article.indian_state %}<span class="badge" style="background:#138808;color:#fff;border:none;border-radius:20px;font-size:.68rem;">{{ article.get_indian_state_display }}</span>{% endif %}
-            <span class="badge bg-info text-dark" style="border:none;border-radius:20px;font-size:.68rem;">{{ article.get_category_display }}</span>
-            {% if article.sentiment == 'positive' %}<span class="badge bg-success" style="border:none;border-radius:20px;font-size:.65rem;"><i class="fas fa-smile"></i></span>
-            {% elif article.sentiment == 'negative' %}<span class="badge bg-danger" style="border:none;border-radius:20px;font-size:.65rem;"><i class="fas fa-frown"></i></span>{% endif %}
+        {% empty %}
+        <div class="col-12">
+          <div class="alert" style="background:#fff8f0;border:1px solid #FF9933;border-left:4px solid #FF9933;border-radius:10px;padding:20px;">
+            <h6 class="mb-1"><i class="fas fa-satellite-dish me-2" style="color:#FF9933;"></i>Fetching India news…</h6>
+            <p class="mb-0 small text-muted">We're pulling fresh news from The Hindu, Times of India, NDTV and more. Check back in a minute!</p>
           </div>
-          <h6 style="font-family:'Merriweather',serif;font-size:.88rem;font-weight:700;line-height:1.4;flex-grow:1;">
-            <a href="{% url 'news:detail' article.pk %}" class="text-decoration-none text-dark">{{ article.title|truncatewords:14 }}</a>
-          </h6>
-          <p class="text-muted small mb-2" style="font-size:.78rem;line-height:1.4;">{{ article.description|truncatewords:15 }}</p>
-          <div class="d-flex justify-content-between align-items-center mt-auto pt-2" style="border-top:1px solid #f0f0f0;">
-            <small class="text-muted" style="font-size:.73rem;"><i class="far fa-clock me-1"></i>{{ article.published_at|timesince }} ago</small>
-            <a href="{% url 'news:detail' article.pk %}" class="btn-read-more" style="font-size:.73rem;padding:4px 14px;">Read &rarr;</a>
-          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if is_paginated %}
+      <nav class="mt-4">
+        <ul class="pagination justify-content-center" style="gap:4px;">
+          {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?{% if selected_state %}state={{ selected_state }}&{% endif %}page={{ page_obj.previous_page_number }}" style="border-radius:8px;">&#8249;</a></li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link" style="border-radius:8px;background:#c8102e;border-color:#c8102e;">{{ page_obj.number }}</span></li>
+          {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?{% if selected_state %}state={{ selected_state }}&{% endif %}page={{ page_obj.next_page_number }}" style="border-radius:8px;">&#8250;</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+
+      <!-- States with articles -->
+      {% if state_counts %}
+      <div class="p-3 mb-3" style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
+        <h6 style="font-weight:800;font-size:.82rem;text-transform:uppercase;letter-spacing:.6px;color:#888;margin-bottom:12px;">
+          <i class="fas fa-map-marked-alt me-1" style="color:#138808;"></i>States with News
+        </h6>
+        {% for s in state_counts %}
+        <a href="{% url 'news:india' %}?state={{ s.code }}"
+           class="d-flex justify-content-between align-items-center text-decoration-none py-2"
+           style="border-bottom:1px solid #fafafa;{% if selected_state == s.code %}color:#c8102e;font-weight:700;{% else %}color:#333;{% endif %}">
+          <span style="font-size:.83rem;">{{ s.name }}</span>
+          <span class="badge" style="background:#fff3f0;color:#c8102e;border:1px solid #fdd;border-radius:12px;font-size:.72rem;">{{ s.count }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- News Sources -->
+      {% if source_counts %}
+      <div class="p-3 mb-3" style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
+        <h6 style="font-weight:800;font-size:.82rem;text-transform:uppercase;letter-spacing:.6px;color:#888;margin-bottom:12px;">
+          <i class="far fa-newspaper me-1" style="color:#c8102e;"></i>News Sources
+        </h6>
+        {% for s in source_counts %}
+        <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid #fafafa;">
+          <span style="font-size:.82rem;color:#333;font-weight:600;">{{ s.source }}</span>
+          <span class="badge" style="background:#f0f4ff;color:#444;border:1px solid #dce4ff;border-radius:12px;font-size:.72rem;">{{ s.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Quick links to major states -->
+      <div class="p-3" style="background:linear-gradient(135deg,#fff8f0,#fff);border-radius:12px;border:1px solid #ffe0b2;border-left:4px solid #FF9933;">
+        <h6 style="font-weight:800;font-size:.82rem;text-transform:uppercase;letter-spacing:.6px;color:#888;margin-bottom:10px;">
+          <i class="fas fa-star me-1" style="color:#FF9933;"></i>Major Regions
+        </h6>
+        <div class="d-flex flex-wrap gap-1">
+          {% for code, name in indian_states %}
+          {% if code == 'DL' or code == 'MH' or code == 'KA' or code == 'TN' or code == 'KL' or code == 'TS' or code == 'WB' or code == 'UP' or code == 'GJ' %}
+          <a href="{% url 'news:india' %}?state={{ code }}"
+             class="badge text-decoration-none"
+             style="background:{% if selected_state == code %}#FF9933{% else %}#fff3e0{% endif %};color:{% if selected_state == code %}#fff{% else %}#c44{% endif %};border:1px solid #ffe0b2;border-radius:20px;padding:4px 10px;font-size:.73rem;">
+            {{ name }}
+          </a>
+          {% endif %}
+          {% endfor %}
         </div>
       </div>
+
     </div>
-    {% empty %}
-    <div class="col-12">
-      <div class="alert" style="background:#fff8f0;border:1px solid #FF9933;border-radius:10px;">
-        <h6 class="mb-1"><i class="fas fa-exclamation-triangle" style="color:#FF9933;"></i> No Indian news articles yet</h6>
-        <p class="mb-0 small">We're working on bringing you more regional news from India. Check back soon!</p>
-      </div>
-    </div>
-    {% endfor %}
   </div>
-
-  <!-- Pagination -->
-  {% if is_paginated %}
-  <nav class="mt-4">
-    <ul class="pagination justify-content-center">
-      {% if page_obj.has_previous %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
-      {% endif %}
-      <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
-      {% if page_obj.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
-      {% endif %}
-    </ul>
-  </nav>
-  {% endif %}
-
 </div>
 {% endblock %}
-

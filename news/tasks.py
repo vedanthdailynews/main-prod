@@ -93,6 +93,44 @@ def cleanup_old_news():
         }
 
 
+@shared_task(name='news.tasks.fetch_india_news')
+def fetch_india_news():
+    """
+    Celery task to fetch news directly from Indian publisher RSS feeds.
+    Runs more frequently than the global fetch for India-first priority.
+    Covers: The Hindu, Times of India, NDTV, Indian Express, Hindustan Times,
+    Economic Times, Business Standard + state/city editions.
+    """
+    logger.info("Starting India-first news fetch...")
+    try:
+        from news.services import IndiaNewsService
+        results = IndiaNewsService.fetch_all()
+        total = sum(results.values())
+        logger.info(f"India news fetch complete. {total} new articles.")
+        return {'success': True, 'results': results, 'total_articles': total}
+    except Exception as e:
+        logger.error(f"Error in fetch_india_news task: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+@shared_task(name='news.tasks.translate_pending_articles')
+def translate_pending_articles(limit: int = 300):
+    """
+    Translate all pending non-English articles to English in parallel.
+    Uses ThreadPoolExecutor(max_workers=20) for maximum throughput.
+    Runs every 1 minute so users see English articles almost immediately.
+    """
+    logger.info(f"Starting parallel translation (limit={limit})...")
+    try:
+        from news.translation_service import TranslationService
+        results = TranslationService.translate_pending(limit=limit)
+        logger.info(f"Translation task done: {results}")
+        return {'success': True, **results}
+    except Exception as e:
+        logger.error(f"Error in translate_pending_articles task: {e}")
+        return {'success': False, 'error': str(e)}
+
+
 @shared_task(name='news.tasks.batch_process_articles')
 def batch_process_articles(limit: int = 10):
     """

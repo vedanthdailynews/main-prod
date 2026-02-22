@@ -147,6 +147,24 @@ class NewsArticle(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_featured = models.BooleanField(default=False)
     view_count = models.IntegerField(default=0)
+
+    # Translation
+    original_language = models.CharField(
+        max_length=10, blank=True, default='',
+        help_text="Detected source language code, e.g. 'hi', 'ta', 'te', 'en'"
+    )
+    original_title = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text="Original non-English title before translation"
+    )
+    original_description = models.TextField(
+        blank=True, null=True,
+        help_text="Original non-English description before translation"
+    )
+    is_translated = models.BooleanField(
+        default=False,
+        help_text="True if title/description were machine-translated to English"
+    )
     
     class Meta:
         ordering = ['-published_at']

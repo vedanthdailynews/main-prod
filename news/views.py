@@ -18,7 +18,7 @@ from news.serializers import (
     NewsArticleListSerializer,
     NewsSourceSerializer
 )
-from news.tasks import fetch_all_news, process_article_with_ai
+from news.tasks import fetch_all_news, fetch_india_news, translate_pending_articles, process_article_with_ai
 from news.stock_service import StockMarketService
 
 logger = logging.getLogger(__name__)
@@ -55,11 +55,11 @@ class HomePageView(ListView):
         # trigger a synchronous news fetch so the page isn't blank.
         if not NewsArticle.objects.exists():
             try:
-                from news.services import GoogleNewsService
+                from news.services import IndiaNewsService, GoogleNewsService
                 import threading
-                threading.Thread(
-                    target=GoogleNewsService.fetch_all_news, daemon=True
-                ).start()
+                # India-first: spin up India feeds immediately, then full fetch
+                threading.Thread(target=IndiaNewsService.fetch_all, daemon=True).start()
+                threading.Thread(target=GoogleNewsService.fetch_all_news, daemon=True).start()
                 context['fetching_now'] = True
             except Exception:
                 pass
@@ -166,14 +166,48 @@ class IndiaNewsView(ListView):
     template_name = 'news/india.html'
     context_object_name = 'articles'
     paginate_by = 20
-    
+
     def get_queryset(self):
-        return NewsArticle.objects.filter(is_indian_news=True).order_by('-published_at')
-    
+        state = self.request.GET.get('state')
+        qs = NewsArticle.objects.filter(is_indian_news=True).order_by('-published_at')
+        if state:
+            qs = qs.filter(indian_state=state)
+        return qs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_articles'] = NewsArticle.objects.filter(is_indian_news=True).count()
         context['indian_states'] = IndianState.choices
+        context['selected_state'] = self.request.GET.get('state', '')
+        context['state_name'] = (
+            dict(IndianState.choices).get(context['selected_state'], '')
+            if context['selected_state'] else ''
+        )
+        # State-wise article counts for sidebar
+        from django.db.models import Count
+        state_counts = (
+            NewsArticle.objects
+            .filter(is_indian_news=True)
+            .exclude(indian_state='')
+            .exclude(indian_state__isnull=True)
+            .values('indian_state')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:15]
+        )
+        state_label_map = dict(IndianState.choices)
+        context['state_counts'] = [
+            {'code': r['indian_state'], 'name': state_label_map.get(r['indian_state'], r['indian_state']), 'count': r['count']}
+            for r in state_counts
+        ]
+        # Source diversity: which publishers are contributing
+        source_counts = (
+            NewsArticle.objects
+            .filter(is_indian_news=True)
+            .values('source')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:8]
+        )
+        context['source_counts'] = list(source_counts)
         return context
 
 

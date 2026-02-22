@@ -567,9 +567,17 @@ class GoogleNewsService:
     def fetch_all_news() -> dict:
         """
         Fetch news for all continents AND all category-specific feeds.
+        India feeds are run FIRST so Indian articles always appear freshest.
         Returns dictionary with keys for continents and categories.
         """
         results = {}
+
+        # ── 0. India-first: fetch directly from Indian publisher RSS feeds ──
+        try:
+            india_results = IndiaNewsService.fetch_all()
+            results.update(india_results)
+        except Exception as e:
+            logger.error(f"IndiaNewsService.fetch_all() failed: {e}")
 
         # 1. Continent-level feeds (sets category via keyword classifier)
         for continent, _ in Continent.choices:
@@ -594,6 +602,14 @@ class GoogleNewsService:
 
         logger.info(f"Fetch complete. Results: {results}")
         return results
+
+    @staticmethod
+    def cleanup_old_news(days: int = 7):
+        """Remove news articles older than specified days."""
+        cutoff_date = timezone.now() - timedelta(days=days)
+        deleted_count, _ = NewsArticle.objects.filter(published_at__lt=cutoff_date).delete()
+        logger.info(f"Deleted {deleted_count} old articles")
+        return deleted_count
     
     @staticmethod
     def cleanup_old_news(days: int = 7):
@@ -607,3 +623,313 @@ class GoogleNewsService:
         deleted_count, _ = NewsArticle.objects.filter(published_at__lt=cutoff_date).delete()
         logger.info(f"Deleted {deleted_count} old articles")
         return deleted_count
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# India-First News Service
+# Fetches directly from major Indian publishers via their own RSS feeds.
+# These are REAL article URLs (not Google News redirects) so trafilatura
+# can extract full article content when a user opens the detail page.
+# ─────────────────────────────────────────────────────────────────────────────
+class IndiaNewsService:
+    """Fetch news directly from Indian news publisher RSS feeds."""
+
+    # ── National / general India feeds ───────────────────────────────────────
+    # Browser-like User-Agent to prevent 403 from publisher sites
+    _HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+
+    NATIONAL_FEEDS = [
+        # (source_name, feed_url, default_category)
+        # The Hindu – verified working
+        ('The Hindu',        'https://www.thehindu.com/news/national/feeder/default.rss',         'WORLD'),
+        ('The Hindu',        'https://www.thehindu.com/news/feeder/default.rss',                  'WORLD'),
+        # Times of India – India top stories
+        ('Times of India',   'https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms',      'WORLD'),
+        # NDTV – no feedburner (shut 2023), use direct feeds
+        ('NDTV',             'https://www.ndtv.com/india/rss',                                    'WORLD'),
+        ('NDTV',             'https://www.ndtv.com/rss/feeds',                                   'WORLD'),
+        # Indian Express
+        ('Indian Express',   'https://indianexpress.com/section/india/feed/',                     'WORLD'),
+        ('Indian Express',   'https://indianexpress.com/feed/',                                   'WORLD'),
+        # Hindustan Times
+        ('Hindustan Times',  'https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml',   'WORLD'),
+        # India Today
+        ('India Today',      'https://www.indiatoday.in/rss/home',                               'WORLD'),
+        # The Wire
+        ('The Wire',         'https://thewire.in/feed',                                          'WORLD'),
+        # Scroll.in
+        ('Scroll.in',        'https://scroll.in/feed',                                           'WORLD'),
+        # Mint
+        ('Mint',             'https://www.livemint.com/rss/news',                                'WORLD'),
+        # Republic World
+        ('Republic World',   'https://www.republicworld.com/rss',                                'WORLD'),
+    ]
+
+    # ── Category-specific feeds from Indian publishers ────────────────────────
+    CATEGORY_FEEDS = [
+        # Business / Economy
+        ('Economic Times',    'https://economictimes.indiatimes.com/rssfeedstopstories.cms',         'BUSINESS'),
+        ('Business Standard', 'https://www.business-standard.com/rss/latest.rss',                   'BUSINESS'),
+        ('The Hindu',         'https://www.thehindu.com/business/feeder/default.rss',               'BUSINESS'),
+        ('Times of India',    'https://timesofindia.indiatimes.com/rssfeeds/1898055.cms',            'BUSINESS'),
+        ('Financial Express', 'https://www.financialexpress.com/feed/',                             'BUSINESS'),
+        ('Mint',              'https://www.livemint.com/rss/markets',                               'BUSINESS'),
+        # Technology
+        ('The Hindu',         'https://www.thehindu.com/sci-tech/technology/feeder/default.rss',    'TECHNOLOGY'),
+        ('Times of India',    'https://timesofindia.indiatimes.com/rssfeeds/-2128814593.cms',        'TECHNOLOGY'),
+        ('Indian Express',    'https://indianexpress.com/section/technology/feed/',                  'TECHNOLOGY'),
+        # Sports
+        ('The Hindu',         'https://www.thehindu.com/sport/feeder/default.rss',                  'SPORTS'),
+        ('Times of India',    'https://timesofindia.indiatimes.com/rssfeeds/4719161.cms',            'SPORTS'),
+        ('Indian Express',    'https://indianexpress.com/section/sports/feed/',                      'SPORTS'),
+        # Entertainment / Bollywood
+        ('Times of India',    'https://timesofindia.indiatimes.com/rssfeeds/1081479906.cms',         'ENTERTAINMENT'),
+        ('Indian Express',    'https://indianexpress.com/section/entertainment/feed/',               'ENTERTAINMENT'),
+        # Science / Health
+        ('The Hindu',         'https://www.thehindu.com/sci-tech/science/feeder/default.rss',       'SCIENCE'),
+        ('The Hindu',         'https://www.thehindu.com/sci-tech/health/feeder/default.rss',        'HEALTH'),
+        ('Indian Express',    'https://indianexpress.com/section/health/feed/',                      'HEALTH'),
+    ]
+
+    # ── State / regional feeds ────────────────────────────────────────────────
+    # Keys are IndianState codes (e.g. 'TN', 'KA')
+    STATE_FEEDS = {
+        'TN': [  # Tamil Nadu
+            ('The Hindu', 'https://www.thehindu.com/news/states/tamil-nadu/feeder/default.rss', 'WORLD'),
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/7098091.cms', 'WORLD'),
+        ],
+        'KA': [  # Karnataka / Bengaluru
+            ('The Hindu', 'https://www.thehindu.com/news/states/karnataka/feeder/default.rss', 'WORLD'),
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/7142025.cms', 'WORLD'),
+        ],
+        'KL': [  # Kerala
+            ('The Hindu', 'https://www.thehindu.com/news/states/kerala/feeder/default.rss', 'WORLD'),
+        ],
+        'AP': [  # Andhra Pradesh
+            ('The Hindu', 'https://www.thehindu.com/news/states/andhra-pradesh/feeder/default.rss', 'WORLD'),
+        ],
+        'TS': [  # Telangana / Hyderabad
+            ('The Hindu', 'https://www.thehindu.com/news/states/telangana/feeder/default.rss', 'WORLD'),
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/7528676.cms', 'WORLD'),
+        ],
+        'DL': [  # Delhi
+            ('Times of India',  'https://timesofindia.indiatimes.com/rssfeeds/2647163.cms', 'WORLD'),
+            ('Hindustan Times', 'https://www.hindustantimes.com/feeds/rss/delhi-news/rssfeed.xml', 'WORLD'),
+        ],
+        'MH': [  # Maharashtra / Mumbai
+            ('Times of India',  'https://timesofindia.indiatimes.com/rssfeeds/3908999.cms', 'WORLD'),
+            ('Hindustan Times', 'https://www.hindustantimes.com/feeds/rss/mumbai-news/rssfeed.xml', 'WORLD'),
+        ],
+        'WB': [  # West Bengal / Kolkata
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/2250067.cms', 'WORLD'),
+        ],
+        'UP': [  # Uttar Pradesh / Lucknow
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/2916700.cms', 'WORLD'),
+            ('Hindustan Times', 'https://www.hindustantimes.com/feeds/rss/lucknow-news/rssfeed.xml', 'WORLD'),
+        ],
+        'GJ': [  # Gujarat
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/3540702.cms', 'WORLD'),
+        ],
+        'RJ': [  # Rajasthan
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/3947011.cms', 'WORLD'),
+        ],
+        'PB': [  # Punjab / Chandigarh
+            ('Hindustan Times', 'https://www.hindustantimes.com/feeds/rss/punjab-news/rssfeed.xml', 'WORLD'),
+        ],
+        'HR': [  # Haryana
+            ('Hindustan Times', 'https://www.hindustantimes.com/feeds/rss/haryana-news/rssfeed.xml', 'WORLD'),
+        ],
+        'MP': [  # Madhya Pradesh
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/7503091.cms', 'WORLD'),
+        ],
+        'BR': [  # Bihar
+            ('Times of India', 'https://timesofindia.indiatimes.com/rssfeeds/7070221.cms', 'WORLD'),
+            ('Hindustan Times', 'https://www.hindustantimes.com/feeds/rss/patna-news/rssfeed.xml', 'WORLD'),
+        ],
+    }
+
+    # ── State detection from article text ────────────────────────────────────
+    # Used to auto-tag national feed articles with the right Indian state
+    STATE_KEYWORDS = {
+        'DL': ['delhi', 'new delhi', 'dilli', 'lutyens delhi', 'delhi ncr'],
+        'MH': ['mumbai', 'pune', 'nagpur', 'nashik', 'maharashtra', 'thane', 'aurangabad', 'solapur', 'navi mumbai'],
+        'KA': ['bengaluru', 'bangalore', 'mysuru', 'mysore', 'karnataka', 'hubli', 'mangaluru', 'mangalore', 'belagavi'],
+        'TN': ['chennai', 'tamil nadu', 'madurai', 'coimbatore', 'salem', 'trichy', 'tirunelveli', 'vellore', 'erode'],
+        'TS': ['hyderabad', 'telangana', 'warangal', 'khammam', 'nizamabad', 'secunderabad'],
+        'AP': ['andhra pradesh', 'vijayawada', 'visakhapatnam', 'vizag', 'tirupati', 'guntur', 'amaravati', 'rajamahendravaram'],
+        'KL': ['kerala', 'kochi', 'thiruvananthapuram', 'kozhikode', 'thrissur', 'calicut', 'kollam', 'kannur'],
+        'WB': ['kolkata', 'west bengal', 'howrah', 'siliguri', 'asansol', 'durgapur', 'calcutta'],
+        'UP': ['lucknow', 'uttar pradesh', 'varanasi', 'agra', 'prayagraj', 'allahabad', 'kanpur', 'meerut', 'noida', 'ghaziabad', 'gorakhpur', 'aligarh'],
+        'RJ': ['jaipur', 'rajasthan', 'jodhpur', 'udaipur', 'ajmer', 'kota', 'bikaner'],
+        'GJ': ['gujarat', 'ahmedabad', 'surat', 'vadodara', 'rajkot', 'gandhinagar', 'anand'],
+        'PB': ['punjab', 'amritsar', 'ludhiana', 'jalandhar', 'patiala', 'mohali'],
+        'HR': ['haryana', 'gurugram', 'gurgaon', 'faridabad', 'rohtak', 'panipat', 'karnal'],
+        'BR': ['bihar', 'patna', 'gaya', 'muzaffarpur', 'bhagalpur', 'nalanda', 'bodh gaya'],
+        'MP': ['madhya pradesh', 'bhopal', 'indore', 'jabalpur', 'gwalior', 'ujjain'],
+        'OD': ['odisha', 'bhubaneswar', 'cuttack', 'rourkela', 'puri', 'brahmapur'],
+        'AS': ['assam', 'guwahati', 'dispur', 'silchar', 'dibrugarh', 'jorhat'],
+        'JH': ['jharkhand', 'ranchi', 'jamshedpur', 'dhanbad', 'bokaro'],
+        'CG': ['chhattisgarh', 'raipur', 'bilaspur', 'durg', 'bhilai'],
+        'JK': ['kashmir', 'jammu', 'srinagar', 'pulwama', 'kupwara', 'anantnag', 'j&k', 'j & k'],
+        'GA': ['goa', 'panaji', 'margao', 'vasco'],
+        'UK': ['uttarakhand', 'dehradun', 'haridwar', 'rishikesh', 'nainital', 'mussoorie'],
+        'HP': ['himachal pradesh', 'shimla', 'manali', 'dharamsala', 'kullu'],
+    }
+
+    @staticmethod
+    def detect_state(title: str, description: str = '') -> str:
+        """Return IndianState code if article is clearly about a specific state, else ''."""
+        text = (title + ' ' + (description or '')).lower()
+        for state_code, keywords in IndiaNewsService.STATE_KEYWORDS.items():
+            for kw in keywords:
+                if kw in text:
+                    return state_code
+        return ''
+
+    @staticmethod
+    def _fetch_feed(source_name: str, feed_url: str, default_category: str,
+                    state_code: str = '') -> int:
+        """
+        Fetch a single RSS feed and save articles to DB.
+        Returns number of new articles added.
+        'source_name' overrides the feed's own source tag so we always know the publisher.
+        """
+        logger.info(f"[IndiaNews] Fetching {source_name} → {feed_url}")
+        try:
+            feed = feedparser.parse(feed_url, request_headers=IndiaNewsService._HEADERS)
+            if not feed.entries:
+                logger.warning(f"[IndiaNews] No entries from {feed_url}")
+                return 0
+
+            articles_added = 0
+            for entry in feed.entries:
+                try:
+                    # ── Published date ────────────────────────────────────
+                    if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                        published_at = timezone.make_aware(
+                            datetime(*entry.published_parsed[:6])
+                        )
+                    else:
+                        published_at = timezone.now()
+
+                    # Skip articles older than 3 days
+                    if (timezone.now() - published_at).days > 3:
+                        continue
+
+                    # ── Clean description ─────────────────────────────────
+                    raw_desc = entry.get('summary', '') or ''
+                    clean_desc = GoogleNewsService.clean_html(raw_desc)
+
+                    # ── Image: feed thumbnail → og scrape → fallback ──────
+                    image_url = GoogleNewsService.extract_image_url(entry)
+                    if not image_url:
+                        image_url = GoogleNewsService.fetch_image_from_url(entry.link)
+                    if not image_url:
+                        image_url = GoogleNewsService.get_fallback_image(None, title=entry.title)
+
+                    # ── Category: use feed default, override with keyword ──
+                    category = (
+                        GoogleNewsService.classify_category(entry.title, clean_desc)
+                        or default_category
+                    )
+
+                    # ── State: explicit (state feed) → keyword detection ──
+                    indian_state = state_code or IndiaNewsService.detect_state(
+                        entry.title, clean_desc
+                    )
+
+                    # ── Translate non-English title/description to English ─
+                    save_title = entry.title
+                    save_desc = clean_desc
+                    orig_title = ''
+                    orig_desc = None
+                    orig_lang = ''
+                    is_translated = False
+                    try:
+                        from news.translation_service import TranslationService, is_non_english
+                        if is_non_english(entry.title) or is_non_english(clean_desc):
+                            result = TranslationService.translate_article_inline(
+                                entry.title, clean_desc
+                            )
+                            if result['translated']:
+                                orig_title = entry.title
+                                orig_desc = clean_desc or None
+                                orig_lang = result['lang']
+                                save_title = result['title']
+                                save_desc = result['description']
+                                is_translated = True
+                    except Exception as te:
+                        logger.warning(f"[IndiaNews] Inline translation error: {te}")
+
+                    article, created = NewsArticle.objects.update_or_create(
+                        url=entry.link,
+                        defaults={
+                            'title':                save_title,
+                            'description':          save_desc,
+                            'source':               source_name,
+                            'image_url':            image_url,
+                            'published_at':         published_at,
+                            'continent':            Continent.ASIA,
+                            'is_indian_news':       True,
+                            'category':             category,
+                            'indian_state':         indian_state,
+                            'original_title':       orig_title,
+                            'original_description': orig_desc,
+                            'original_language':    orig_lang,
+                            'is_translated':        is_translated,
+                        }
+                    )
+                    if created:
+                        articles_added += 1
+                except Exception as e:
+                    logger.error(f"[IndiaNews] Error processing entry from {source_name}: {e}")
+                    continue
+
+            logger.info(f"[IndiaNews] {source_name}: {articles_added} new articles")
+            return articles_added
+
+        except Exception as e:
+            logger.error(f"[IndiaNews] Failed to fetch {feed_url}: {e}")
+            return 0
+
+    @classmethod
+    def fetch_national(cls) -> int:
+        """Fetch all national / top-level India feeds."""
+        total = 0
+        for source, url, cat in cls.NATIONAL_FEEDS:
+            total += cls._fetch_feed(source, url, cat)
+        return total
+
+    @classmethod
+    def fetch_categories(cls) -> int:
+        """Fetch all category-specific India feeds."""
+        total = 0
+        for source, url, cat in cls.CATEGORY_FEEDS:
+            total += cls._fetch_feed(source, url, cat)
+        return total
+
+    @classmethod
+    def fetch_states(cls) -> dict:
+        """Fetch all state / city-level feeds. Returns {state_code: count}."""
+        results = {}
+        for state_code, feeds in cls.STATE_FEEDS.items():
+            count = 0
+            for source, url, cat in feeds:
+                count += cls._fetch_feed(source, url, cat, state_code=state_code)
+            results[state_code] = count
+        return results
+
+    @classmethod
+    def fetch_all(cls) -> dict:
+        """
+        Run all India feeds: national → category → state.
+        Returns combined results dict.
+        """
+        results = {}
+        results['india_national'] = cls.fetch_national()
+        results['india_categories'] = cls.fetch_categories()
+        state_results = cls.fetch_states()
+        results.update({f'india_state:{k}': v for k, v in state_results.items()})
+        total = sum(results.values())
+        logger.info(f"[IndiaNews] Complete. {total} new articles total. {results}")
+        return results
