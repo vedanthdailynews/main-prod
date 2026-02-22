@@ -158,6 +158,20 @@
                     {% endif %}
                 </div>
 
+                <!-- Read Full Article CTA -->
+                {% if article_source_url %}
+                <div class="mt-4 pt-3" style="border-top:1px solid #f0f0f0;">
+                    {% if not article.content %}
+                    <p class="text-muted mb-3" style="font-size:.88rem;"><i class="fas fa-info-circle me-1"></i>This is a preview. Click below to read the full article on the original source.</p>
+                    {% endif %}
+                    <a href="{{ article_source_url }}" target="_blank" rel="noopener noreferrer"
+                       class="btn btn-lg"
+                       style="background:#c8102e;color:#fff;border-radius:8px;font-weight:600;font-size:.95rem;padding:10px 28px;">
+                        Read Full Article &nbsp;<i class="fas fa-external-link-alt"></i>
+                    </a>
+                </div>
+                {% endif %}
+
                 <!-- Tags -->
                 {% if article.tags %}
                 <div class="mt-4 pt-3" style="border-top:1px solid #f0f0f0;">
