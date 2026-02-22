@@ -116,7 +116,6 @@
 
                 <!-- Meta row -->
                 <div class="article-meta-row">
-                    <span class="article-source-badge"><i class="far fa-newspaper"></i> {{ article.source }}{% if article.author %} &mdash; {{ article.author }}{% endif %}</span>
                     <span><i class="far fa-clock"></i> {{ article.published_at|date:"d M Y, g:i A" }}</span>
                     <span><i class="far fa-eye"></i> {{ article.view_count }} views</span>
                     <span><i class="far fa-clock"></i> {{ article.published_at|timesince }} ago</span>

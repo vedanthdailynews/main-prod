@@ -51,7 +51,7 @@
               <a href="{% url 'news:detail' hero_article.pk %}" class="text-decoration-none text-white">{{ hero_article.title }}</a>
             </h1>
             <p class="mb-1" style="font-size:.88rem;opacity:.85;">{{ hero_article.description|truncatewords:22 }}</p>
-            <small style="opacity:.7;"><i class="far fa-clock"></i> {{ hero_article.published_at|timesince }} ago &nbsp;|&nbsp; {{ hero_article.source }}</small>
+            <small style="opacity:.7;"><i class="far fa-clock"></i> {{ hero_article.published_at|timesince }} ago</small>
           </div>
         </div>
 
@@ -232,7 +232,7 @@
               <a href="{% url 'news:detail' article.pk %}" class="text-decoration-none text-dark">{{ article.title|truncatewords:14 }}</a>
             </h6>
             <p class="text-muted small mb-2 flex-grow-1">{{ article.description|truncatewords:16 }}</p>
-            <small class="text-muted" style="font-size:.75rem;"><i class="far fa-clock"></i> {{ article.published_at|timesince }} ago &nbsp;·&nbsp; {{ article.source }}</small>
+            <small class="text-muted" style="font-size:.75rem;"><i class="far fa-clock"></i> {{ article.published_at|timesince }} ago</small>
           </div>
         </div>
       </div>

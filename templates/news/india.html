@@ -95,7 +95,7 @@
               <!-- Footer row -->
               <div class="d-flex justify-content-between align-items-center mt-auto pt-2" style="border-top:1px solid #f5f5f5;">
                 <div>
-                  <span style="font-size:.7rem;font-weight:700;color:#c8102e;">{{ article.source }}</span>
+
                   <span class="text-muted" style="font-size:.68rem;"> &middot; {{ article.published_at|timesince }} ago</span>
                 </div>
                 <a href="{% url 'news:detail' article.pk %}" class="btn-read-more" style="font-size:.7rem;padding:3px 12px;">Read &rarr;</a>
@@ -145,21 +145,6 @@
           <span style="font-size:.83rem;">{{ s.name }}</span>
           <span class="badge" style="background:#fff3f0;color:#c8102e;border:1px solid #fdd;border-radius:12px;font-size:.72rem;">{{ s.count }}</span>
         </a>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      <!-- News Sources -->
-      {% if source_counts %}
-      <div class="p-3 mb-3" style="background:#fff;border-radius:12px;border:1px solid #f0f0f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
-        <h6 style="font-weight:800;font-size:.82rem;text-transform:uppercase;letter-spacing:.6px;color:#888;margin-bottom:12px;">
-          <i class="far fa-newspaper me-1" style="color:#c8102e;"></i>News Sources
-        </h6>
-        {% for s in source_counts %}
-        <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid #fafafa;">
-          <span style="font-size:.82rem;color:#333;font-weight:600;">{{ s.source }}</span>
-          <span class="badge" style="background:#f0f4ff;color:#444;border:1px solid #dce4ff;border-radius:12px;font-size:.72rem;">{{ s.count }}</span>
-        </div>
         {% endfor %}
       </div>
       {% endif %}
