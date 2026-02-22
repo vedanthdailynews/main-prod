@@ -13,7 +13,7 @@
         🇮🇳 {% if state_name %}{{ state_name }}{% else %}India{% endif %} News
       </h1>
       <p class="mb-0" style="font-size:.83rem;color:#888;margin-top:2px;">
-        {{ total_articles }} articles from The Hindu, Times of India, NDTV &amp; more
+        {{ total_articles }} articles
         {% if state_name %}&mdash; filtered for <strong>{{ state_name }}</strong>{% endif %}
       </p>
     </div>
@@ -107,7 +107,7 @@
         <div class="col-12">
           <div class="alert" style="background:#fff8f0;border:1px solid #FF9933;border-left:4px solid #FF9933;border-radius:10px;padding:20px;">
             <h6 class="mb-1"><i class="fas fa-satellite-dish me-2" style="color:#FF9933;"></i>Fetching India news…</h6>
-            <p class="mb-0 small text-muted">We're pulling fresh news from The Hindu, Times of India, NDTV and more. Check back in a minute!</p>
+            <p class="mb-0 small text-muted">Fresh news is being fetched. Check back in a minute!</p>
           </div>
         </div>
         {% endfor %}
