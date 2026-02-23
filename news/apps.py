@@ -22,6 +22,12 @@ class NewsConfig(AppConfig):
         if settings.DEBUG and os.environ.get('RUN_MAIN') != 'true':
             return
 
+        # Guard against multiple workers starting duplicate schedulers.
+        # Only the first process to set this env var will run the scheduler.
+        if os.environ.get('APSCHEDULER_STARTED') == 'true':
+            return
+        os.environ['APSCHEDULER_STARTED'] = 'true'
+
         try:
             from apscheduler.schedulers.background import BackgroundScheduler
             from apscheduler.triggers.interval import IntervalTrigger
