@@ -2,6 +2,7 @@
 Views for news application.
 """
 import logging
+import re
 from datetime import datetime
 
 from django.shortcuts import render, get_object_or_404
@@ -256,6 +257,7 @@ class NewsDetailView(DetailView):
                 scrape_url = self._resolve_real_url(scrape_url)
             # Only scrape if we have a real (non-Google) URL
             if scrape_url and 'news.google.com' not in scrape_url:
+                # Attempt 1: trafilatura (best quality)
                 try:
                     import trafilatura
                     downloaded = trafilatura.fetch_url(scrape_url)
@@ -268,11 +270,9 @@ class NewsDetailView(DetailView):
                         )
                         if text and len(text) > 200:
                             article.content = text
-                            # Store the resolved real URL so future visits skip redirect
                             if scrape_url != article.url:
                                 article.url = scrape_url
                             article.save(update_fields=['view_count', 'content', 'url'])
-                            # Translate scraped content if non-English
                             try:
                                 from news.translation_service import TranslationService, is_non_english
                                 if is_non_english(text[:300]):
@@ -283,6 +283,52 @@ class NewsDetailView(DetailView):
                             return article
                 except Exception as e:
                     logger.warning(f"trafilatura failed for article {article.pk}: {e}")
+
+                # Attempt 2: requests + BeautifulSoup paragraph extraction
+                if not article.content:
+                    try:
+                        import requests as req
+                        from bs4 import BeautifulSoup
+                        headers = {
+                            'User-Agent': (
+                                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                                'Chrome/120.0.0.0 Safari/537.36'
+                            )
+                        }
+                        resp = req.get(scrape_url, headers=headers, timeout=8,
+                                       allow_redirects=True)
+                        if resp.status_code == 200:
+                            soup = BeautifulSoup(resp.content, 'html.parser')
+                            # Remove nav/ads/footer noise
+                            for tag in soup(['script', 'style', 'nav', 'footer',
+                                             'aside', 'header', 'form', 'noscript']):
+                                tag.decompose()
+                            # Find the article body
+                            body = (
+                                soup.find('article') or
+                                soup.find(class_=re.compile(
+                                    r'article[-_]?body|story[-_]?body|post[-_]?content'
+                                    r'|entry[-_]?content|article[-_]?content',
+                                    re.I
+                                )) or
+                                soup.find('main')
+                            )
+                            if body:
+                                paragraphs = [
+                                    p.get_text(' ', strip=True)
+                                    for p in body.find_all('p')
+                                    if len(p.get_text(strip=True)) > 60
+                                ]
+                                text = '\n\n'.join(paragraphs)
+                                if len(text) > 200:
+                                    article.content = text
+                                    if scrape_url != article.url:
+                                        article.url = scrape_url
+                                    article.save(update_fields=['view_count', 'content', 'url'])
+                                    return article
+                    except Exception as e:
+                        logger.warning(f"BS4 extraction failed for article {article.pk}: {e}")
         # ──────────────────────────────────────────────────────────────────
 
         # ── If content is still non-English, try translation again ────────
@@ -306,13 +352,17 @@ class NewsDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         article = context['article']
-        # Convert RSS redirect URL → browser-friendly Google News web URL
         url = article.url or ''
-        if 'news.google.com/rss/articles/' in url:
-            # Strip query string params, replace /rss/articles/ with /articles/
+        if not url:
+            context['article_source_url'] = ''
+        elif 'news.google.com/rss/articles/' in url:
+            # Convert RSS redirect → browser-usable Google News web URL
             clean = url.split('?')[0].replace('/rss/articles/', '/articles/')
             context['article_source_url'] = clean
+        elif 'news.google.com' in url:
+            context['article_source_url'] = url
         else:
+            # Already a real publisher URL (resolved at fetch time)
             context['article_source_url'] = url
         return context
 

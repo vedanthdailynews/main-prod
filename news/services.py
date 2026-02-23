@@ -394,6 +394,32 @@ class GoogleNewsService:
         return f"https://picsum.photos/seed/{seed}/800/450"
     
     @staticmethod
+    def resolve_google_news_url(google_url: str) -> str:
+        """
+        Resolve a Google News redirect URL to the real article URL.
+        Returns the real URL, or the original if resolution fails.
+        """
+        if not google_url or 'news.google.com' not in google_url:
+            return google_url
+        try:
+            headers = {
+                'User-Agent': (
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                    'AppleWebKit/537.36 (KHTML, like Gecko) '
+                    'Chrome/120.0.0.0 Safari/537.36'
+                ),
+                'Accept-Language': 'en-US,en;q=0.9',
+            }
+            resp = requests.get(google_url, headers=headers, timeout=8,
+                                allow_redirects=True)
+            final = resp.url
+            if 'news.google.com' not in final and final.startswith('http'):
+                return final
+        except Exception:
+            pass
+        return google_url
+
+    @staticmethod
     def fetch_news_for_continent(continent: str) -> int:
         """
         Fetch news for a specific continent.
@@ -458,6 +484,9 @@ class GoogleNewsService:
                         entry.title, clean_description
                     )
 
+                    # Resolve Google News redirect → real article URL
+                    real_url = GoogleNewsService.resolve_google_news_url(entry.link)
+
                     # Use update_or_create to avoid UNIQUE constraint errors
                     defaults = {
                         'title': entry.title,
@@ -472,10 +501,10 @@ class GoogleNewsService:
                         defaults['category'] = category
 
                     article, created = NewsArticle.objects.update_or_create(
-                        url=entry.link,
+                        url=real_url,
                         defaults=defaults,
                     )
-                    
+
                     if created:
                         articles_added += 1
                         logger.info(f"Added article: {article.title}")
@@ -538,8 +567,11 @@ class GoogleNewsService:
 
                     source_name = entry.get('source', {}).get('title', 'Google News')
 
+                    # Resolve Google News redirect → real article URL
+                    real_url = GoogleNewsService.resolve_google_news_url(entry.link)
+
                     article, created = NewsArticle.objects.update_or_create(
-                        url=entry.link,
+                        url=real_url,
                         defaults={
                             'title': entry.title,
                             'description': clean_description,
@@ -881,6 +913,25 @@ class IndiaNewsService:
                     )
                     if created:
                         articles_added += 1
+                        # Pre-scrape full content for new articles using real
+                        # publisher URLs (done at build/fetch time where network
+                        # access is less restricted than production gunicorn).
+                        if not article.content and article.url and 'news.google.com' not in article.url:
+                            try:
+                                import trafilatura
+                                downloaded = trafilatura.fetch_url(article.url)
+                                if downloaded:
+                                    text = trafilatura.extract(
+                                        downloaded,
+                                        include_comments=False,
+                                        include_tables=False,
+                                        no_fallback=False,
+                                    )
+                                    if text and len(text) > 200:
+                                        article.content = text
+                                        article.save(update_fields=['content'])
+                            except Exception:
+                                pass  # non-fatal, detail view will retry
                 except Exception as e:
                     logger.error(f"[IndiaNews] Error processing entry from {source_name}: {e}")
                     continue

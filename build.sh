@@ -14,6 +14,6 @@ python manage.py migrate --no-input
 # Fetch initial news so the site has content immediately after deploy.
 # Keep this lean — only RSS fetching, no external image API calls.
 echo "Fetching initial news from Google News..."
-python manage.py fetch_news || echo "News fetch failed (non-fatal) — APScheduler will retry on first request."
+python manage.py fetch_news --verbosity 2 || echo "News fetch failed (non-fatal) — APScheduler will retry on first request."
 
 echo "Build complete."
