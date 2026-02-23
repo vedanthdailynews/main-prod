@@ -834,6 +834,9 @@ class IndiaNewsService:
                 return 0
 
             articles_added = 0
+            # Limit content pre-scraping to keep build time reasonable
+            content_scraped_this_feed = 0
+            MAX_CONTENT_SCRAPE_PER_FEED = 5
             for entry in feed.entries:
                 try:
                     # ── Published date ────────────────────────────────────
@@ -916,7 +919,10 @@ class IndiaNewsService:
                         # Pre-scrape full content for new articles using real
                         # publisher URLs (done at build/fetch time where network
                         # access is less restricted than production gunicorn).
-                        if not article.content and article.url and 'news.google.com' not in article.url:
+                        if (not article.content
+                                and article.url
+                                and 'news.google.com' not in article.url
+                                and content_scraped_this_feed < MAX_CONTENT_SCRAPE_PER_FEED):
                             try:
                                 import trafilatura
                                 downloaded = trafilatura.fetch_url(article.url)
@@ -930,6 +936,7 @@ class IndiaNewsService:
                                     if text and len(text) > 200:
                                         article.content = text
                                         article.save(update_fields=['content'])
+                                        content_scraped_this_feed += 1
                             except Exception:
                                 pass  # non-fatal, detail view will retry
                 except Exception as e:
